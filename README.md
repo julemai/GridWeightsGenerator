@@ -1,8 +1,12 @@
-# Grid Weights Generator
+# Grid Weights Generator for Raven
 
 Generates weights of grid cells contributing to individual shapes. The grid weights are, for example, helpful to spatially aggregate a gridded model output to a irregular shaped domain or, in general, to map grid cells to a polygon shape. 
 
 In this case here, any given gridded model output (see examples in `example/input_*/*.nc`) shall be mapped to a subbasin discretization for the purpose of routing. The subbasin discretization is derived using the RoutingToolbox described by Han et al. (2020a), Han et al. (2020b) and available through Han et al. (2020c). Parts of the Routing Toolbox output is provided here for convenience for an example watershed draining to the WSC streamflow gauge station 02LE024 (see shapefiles in `example/maps/*.shp`).
+
+<p align="center">
+   <img src="https://github.com/julemai/GridWeightsGenerator/wiki/images/logos/RavenBanner.png" width="45%" />
+</p>
 
 The generated file containing the grid weights can be used in the hydrologic modeling framework [Raven](http://raven.uwaterloo.ca) to handle gridded NetCDF inputs and map them to the subbasins/ HRUs a distributed model is based on. The grid weights file produced here (based on the Routing Toolbox discretization) is then primarily used to run Raven in routing-mode and route gridded model outputs (from any model).
 
