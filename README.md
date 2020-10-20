@@ -4,6 +4,15 @@ Generates weights of grid cells contributing to individual shapes. The grid weig
 
 In this case here, any given gridded model output (see examples in `example/input_*/*.nc`) shall be mapped to a subbasin discretization for the purpose of routing. The subbasin discretization is derived using the RoutingToolbox described by Han et al. (2020a), Han et al. (2020b) and available through Han et al. (2020c). Parts of the Routing Toolbox output is provided here for convenience for an example watershed draining to the WSC streamflow gauge station 02LE024 (see shapefiles in `example/maps/*.shp`).
 
+## Requirements
+
+The script is tested under Pythin 3.8 and it requires the following Python packages:
+* `pip install GDAL` (gets you `osgeo`)
+* `pip install argparse`
+* `pip install numpy`
+* `pip install geopandas`
+* `pip install netCDF4`
+
 ## Usage: General
 
 ```python
