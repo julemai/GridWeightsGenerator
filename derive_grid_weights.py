@@ -314,9 +314,9 @@ if not(SubId is None): # if routing toolbox basin ID is given
         
         old_SubId.append(new_SubId)
         new_SubId = [ list(shape.loc[(np.where(shape['DowSubId']==ii))[0]].SubId) for ii in new_SubId ]  # find all upstream catchments of these new basins
-        new_SubId = [item for sublist in new_SubId for item in sublist] # flatten list
+        new_SubId = list(np.unique([item for sublist in new_SubId for item in sublist])) # flatten list and make entries unique
 
-        print("new_SubId = ",new_SubId)
+        # print("new_SubId = ",new_SubId)
 
     old_SubId = np.array([item for sublist in old_SubId for item in sublist],dtype=np.int)  # flatten list
     
