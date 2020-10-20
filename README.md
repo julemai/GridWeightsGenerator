@@ -1,4 +1,4 @@
-# GridWeightsGenerator
+# Grid Weights Generator
 
 Generates weights of grid cells contributing to individual shapes. The grid weights are, for example, helpful to spatially aggregate a gridded model output to a irregular shaped domain or, in general, to map grid cells to a polygon shape. 
 
