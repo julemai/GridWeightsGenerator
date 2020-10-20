@@ -2,7 +2,7 @@
 
 Generates weights of grid cells contributing to individual shapes. The grid weights are, for example, helpful to spatially aggregate a gridded model output to a irregular shaped domain or, in general, to map grid cells to a polygon shape. 
 
-In this case here, any given gridded model output (see examples in `example/input_*/*.nc`) shall be mapped to a subbasin discretization for the purpose of routing. The subbasin discretization is derived using the RoutingToolbox described by Han et al. (2020a), Han et al. (2020b) and available through Han et al. (2020c). Parts of the Routing Toolbox output is provided here for convenience for an example watershed draining to the WSC streamflow gauge station 02LE024 (see shapefiles in `example/maps/*.shp`). 
+In this case here, any given gridded model output (see examples in `example/input_*/*.nc`) shall be mapped to a subbasin discretization for the purpose of routing. The subbasin discretization is derived using the RoutingToolbox described by Han et al. (2020a), Han et al. (2020b) and available through Han et al. (2020c). Parts of the Routing Toolbox output is provided here for convenience for an example watershed draining to the WSC streamflow gauge station 02LE024 (see shapefiles in `example/maps/*.shp`).
 
 ## Usage: General
 
