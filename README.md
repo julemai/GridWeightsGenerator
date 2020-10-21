@@ -36,7 +36,7 @@ with
                          e.g. 'lon,lat'
 [tlbx-shp-file] ... [in] name of shapefile routing toolbox provides; 
                          shapefile contains shapes of all land and lake HRUs,
-                         e.g. 'gauges_catchment_HRU_withlake.shp'
+                         e.g. 'HRUs.shp'
 [subbasin-id]   ... [in] (either this or [gauge-id] must be set)
                          ID of subbasin  most downstream (likely a subbasin 
                          that contains a streamflow gauge station but can 
