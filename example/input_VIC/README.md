@@ -9,31 +9,23 @@ netcdf VIC_streaminputs {
 dimensions:
 	lon = 10 ;
 	lat = 10 ;
-	time = UNLIMITED ; // (4018 currently)
+	time = 16072 ; 
 variables:
-	double time(time) ;
+	float time(time) ;
 		time:standard_name = "time" ;
 		time:units = "days since 0001-01-01 00:00:00" ;
 		time:calendar = "proleptic_gregorian" ;
-	double lon(lat, lon) ;
+	float lon(lat, lon) ;
 		lon:long_name = "longitude" ;
 		lon:units = "degrees_east" ;
 		lon:standard_name = "longitude" ;
-	double lat(lat, lon) ;
+	float lat(lat, lon) ;
 		lat:long_name = "latitude" ;
 		lat:units = "degrees_north" ;
 		lat:standard_name = "latitude" ;
-	float OUT_PREC(time, lat, lon) ;
-		OUT_PREC:units = "mm" ;
-		OUT_PREC:description = "incoming precipitation" ;
-	float OUT_AIR_TEMP(time, lat, lon) ;
-		OUT_AIR_TEMP:units = "C" ;
-		OUT_AIR_TEMP:description = "air temperature" ;
-	float OUT_RUNOFF(time, lat, lon) ;
-		OUT_RUNOFF:units = "mm" ;
-		OUT_RUNOFF:description = "surface runoff" ;
-	float OUT_BASEFLOW(time, lat, lon) ;
-		OUT_BASEFLOW:units = "mm" ;
-		OUT_BASEFLOW:description = "baseflow out of the bottom layer" ;
+	float Streaminputs(time, lat, lon) ;
+		Streaminputs:long_name = "total runoff" ;
+		Streaminputs:units = "mm" ;
+		Streaminputs:description = "combined surface runoff and recharge" ;
 }
 ```
