@@ -304,9 +304,14 @@ shape     = gpd.read_file(routinginfo)
 # shape     = shape.to_crs(epsg=crs_lldeg)        # this is lat/lon in degree
 shape     = shape.to_crs(epsg=crs_caea)           # WGS 84 / North Pole LAEA Canada
 
+# check that key column contains only unique values
+keys = np.array(list(shape[key_colname]))
+keys_uniq = np.unique(keys)
+if len(keys_uniq) != len(keys):
+    raise ValueError("The attribute of the shapefile set to contain only unique identifiers ('{}') does contain duplicate keys. Please specify another column (option -c '<col_name>') and use the option to process all records contained in the shapefile (-a).".format(key_colname))
+
 
 # select only relevant basins/sub-basins
-
 if not(doall):
     
     if not(basin is None):    # if gauge ID is given
