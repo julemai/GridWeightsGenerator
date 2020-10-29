@@ -29,13 +29,13 @@ from __future__ import print_function
 # ------------------------
 #        VIC
 # ------------------------
-#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
+#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
 
 # ------------------------
 #        MESH
 # ------------------------
-#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
-#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs.shp -b 02LE024 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
 
 # --------------------------------------------------
 # GRIP-GL version with subbasin ID given (attribute "SubId" in shapefile)  --> -s 7202
@@ -44,13 +44,13 @@ from __future__ import print_function
 # ------------------------
 #        VIC
 # ------------------------
-#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs.shp -s 7202 -o example/input_VIC/GridWeights.txt
+#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_VIC/GridWeights.txt
 
 # ------------------------
 #        MESH
 # ------------------------
-#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs.shp -s 7202 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
-#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs.shp -s 7202 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
 
 
 
@@ -78,10 +78,12 @@ import netCDF4 as nc4
 input_file  = 'example/input_VIC/VIC_streaminputs.nc'
 dimname     = ['rlon','rlat']
 varname     = ['lon','lat']
-routinginfo = 'example/maps/HRUs.shp'
+routinginfo = 'example/maps/HRUs_coarse.shp'
 basin       = None  # e.g. '02LE024'
 SubId       = None  # e.g. 7202
 output_file = 'GriddedForcings.txt'
+doall       = False
+key_colname = 'HRU_ID'
 
 parser      = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
               description='''Convert files from ArcGIS raster format into NetDF file usable in CaSPAr.''')
@@ -106,6 +108,12 @@ parser.add_argument('-s', '--SubId', action='store',
 parser.add_argument('-o', '--output_file', action='store',
                     default=output_file, dest='output_file', metavar='output_file', 
                     help='File that will contain grid weights for Raven.')
+parser.add_argument('-a', '--doall', action='store_true',
+                    default=doall, dest='doall',
+                    help='If given, all HRUs found in shapefile are processed. Overwrites settings of "-b" and "-s". Default: not set (False).')
+parser.add_argument('-c', '--key_colname', action='store',
+                    default=key_colname, dest='key_colname', metavar='key_colname',
+                    help='Name of column in shapefile containing unique key for each dataset. This key will be used in output file. This setting is only used if "-a" option is used. "Default: "HRU_ID".')
 
 args          = parser.parse_args()
 input_file    = args.input_file
@@ -115,15 +123,20 @@ routinginfo   = args.routinginfo
 basin         = args.basin
 SubId         = args.SubId
 output_file   = args.output_file
+doall         = args.doall
+key_colname   = args.key_colname
 
 if not(SubId is None):
     SubId = np.int(SubId)
 
-if (SubId is None) and (basin is None):
+if (SubId is None) and (basin is None) and not(doall):
     raise ValueError("Either gauge ID (option -b; e.g., 02AB003) or SubId ID (option -s; e.g., 7173) specified in shapefile needs to be given. You specified none. This basin will be the most downstream gridweights of all upstream subbasins will be added automatically.")
 
-if ( not(SubId is None) ) and ( not(basin is None) ):
+if ( not(SubId is None) ) and ( not(basin is None) ) and not(doall):
     raise ValueError("Either gauge ID (option -b; e.g., 02AB003) or SubId ID (option -s; e.g., 7173) specified in shapefile needs to be specified. You specified both. This basin will be the most downstream gridweights of all upstream subbasins will be added automatically.")
+
+if not(doall):
+    key_colname = 'HRU_ID'    # overwrite any settimg made for this column name in case doall is not set
 
 del parser, args
 
@@ -294,39 +307,45 @@ shape     = shape.to_crs(epsg=crs_caea)           # WGS 84 / North Pole LAEA Can
 
 # select only relevant basins/sub-basins
 
-if not(basin is None):    # if gauge ID is given
+if not(doall):
     
-    idx_basin = list(np.where(shape['Obs_NM']==basin)[0]) # list(np.where(shape['Gauge_ID']==basin)[0])
-    # print('   >>> subbasins found = ',list(np.sort(np.array(shape.loc[idx_basin].HRU_ID,dtype=np.int))),'  (total: ',len(idx_basin),')')
-
-    # find corresponding SubId
-    SubId = np.int(shape.loc[idx_basin].SubId)
-    print("   >>> found gauge at SubId = ",SubId)
-
-if not(SubId is None): # if routing toolbox basin ID is given
-
-    # maybe replace "SubId" with "HRU_ID" -->> needs to be tested
-
-    old_SubId     = []
-    new_SubId     = [ SubId ]
-
-    while len(new_SubId) > 0:
+    if not(basin is None):    # if gauge ID is given
         
-        old_SubId.append(new_SubId)
-        new_SubId = [ list(shape.loc[(np.where(shape['DowSubId']==ii))[0]].SubId) for ii in new_SubId ]  # find all upstream catchments of these new basins
-        new_SubId = list(np.unique([item for sublist in new_SubId for item in sublist])) # flatten list and make entries unique
+        idx_basin = list(np.where(shape['Obs_NM']==basin)[0]) # list(np.where(shape['Gauge_ID']==basin)[0])
+        # print('   >>> subbasins found = ',list(np.sort(np.array(shape.loc[idx_basin][key_colname],dtype=np.int))),'  (total: ',len(idx_basin),')')
 
-        # print("new_SubId = ",new_SubId)
+        # find corresponding SubId
+        SubId = np.int(shape.loc[idx_basin].SubId)
+        print("   >>> found gauge at SubId = ",SubId)
 
-    old_SubId = np.array([item for sublist in old_SubId for item in sublist],dtype=np.int)  # flatten list
-    
-    idx_basin = [ list(np.where(shape['SubId']==oo)[0]) for oo in old_SubId ]
-    idx_basin = [ item for sublist in idx_basin for item in sublist ]  # flatten list
-    idx_basin = list(np.unique(np.sort(idx_basin)))                    # getting only unique list indexes
+    if not(SubId is None): # if routing toolbox basin ID is given
 
-    # get HRU_ID associated to those SubIds (SubIds can appear multiple times- one for "lake" and one for "land")
-    
-    print('   >>> HRU_IDs found = ',list(shape.loc[idx_basin].HRU_ID),'  (total: ',len(idx_basin),')')
+        # maybe replace "SubId" with "HRU_ID" -->> needs to be tested
+
+        old_SubId     = []
+        new_SubId     = [ SubId ]
+
+        while len(new_SubId) > 0:
+            
+            old_SubId.append(new_SubId)
+            new_SubId = [ list(shape.loc[(np.where(shape['DowSubId']==ii))[0]].SubId) for ii in new_SubId ]  # find all upstream catchments of these new basins
+            new_SubId = list(np.unique([item for sublist in new_SubId for item in sublist])) # flatten list and make entries unique
+
+            # print("new_SubId = ",new_SubId)
+
+        old_SubId = np.array([item for sublist in old_SubId for item in sublist],dtype=np.int)  # flatten list
+        
+        idx_basin = [ list(np.where(shape['SubId']==oo)[0]) for oo in old_SubId ]
+        idx_basin = [ item for sublist in idx_basin for item in sublist ]  # flatten list
+        idx_basin = list(np.unique(np.sort(idx_basin)))                    # getting only unique list indexes
+
+        # get HRU_ID associated to those SubIds (SubIds can appear multiple times- one for "lake" and one for "land")
+        
+        print('   >>> HRU_IDs found = ',list(shape.loc[idx_basin][key_colname]),'  (total: ',len(idx_basin),')')
+
+else: # all HRUs to be processed
+
+    idx_basin = list(np.arange(0,len(shape)))
 
 
 shape     = shape.loc[idx_basin]
@@ -425,10 +444,10 @@ for ikk,kk in enumerate(keys):
                 if area_intersect > 0:
                     ncells += 1
 
-                    print("   >>> {0},{1},{2},{3},{4}".format(int(ibasin.HRU_ID),ilat,ilon,ilat*nlon+ilon,area_intersect/area_basin))
-                    ff.write("   {0}   {1}   {2}\n".format(int(ibasin.HRU_ID),ilat*nlon+ilon,area_intersect/area_basin))
+                    print("   >>> {0},{1},{2},{3},{4}".format(int(ibasin[key_colname]),ilat,ilon,ilat*nlon+ilon,area_intersect/area_basin))
+                    ff.write("   {0}   {1}   {2}\n".format(int(ibasin[key_colname]),ilat*nlon+ilon,area_intersect/area_basin))
 
-    print('   >>> (Sub-)Basin: {0} ({1} of {2})'.format(int(ibasin.HRU_ID),ikk+1,nsubbasins))
+    print('   >>> (Sub-)Basin: {0} ({1} of {2})'.format(int(ibasin[key_colname]),ikk+1,nsubbasins))
     print('   >>> Derived area of {0}  cells: {1}'.format(ncells,area_all))
     print('   >>> Read area from shapefile:   {0}'.format(area_basin))  
     print('   >>> error:                      {0}%'.format((area_basin - area_all)/area_basin*100.))
