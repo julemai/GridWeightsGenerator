@@ -29,52 +29,52 @@ with
 [your-nc-file]  ... [in] filename of NetCDF file
 [dim-names]     ... [in] names of NetCDF dimensions of longitude (x) 
                          and latitude (y) in this order, 
-                         e.g. 'rlon,rlat'
+                         e.g. "rlon,rlat"
 [var-names]     ... [in] names of 2D NetCDF variables containing 
                          longitudes and latitudes (in this order) of 
                          centroids of grid cells, 
-                         e.g. 'lon,lat'
+                         e.g. "lon,lat"
 [tlbx-shp-file] ... [in] name of shapefile routing toolbox provides; 
                          shapefile contains shapes of all land and lake HRUs,
-                         e.g. 'HRUs.shp'
+                         e.g. "HRUs.shp"
 [subbasin-id]   ... [in] (either this or [gauge-id] must be set)
                          ID of subbasin  most downstream (likely a subbasin 
                          that contains a streamflow gauge station but can 
                          be any subbasin ID); script will include all subbasins 
                          upstream of the given subbasin automatically; according 
                          attribute in [tlbx-shp-file] is called "SubId"; 
-                         e.g. '7202'
+                         e.g. "7202"
 [gauge-id]      ... [in] (either this or [subbasin-id] must be set)
                          ID of streamflow gauging station; according attribute in 
                          [tlbx-shp-file] is called "Obs_NM"; 
-                         e.g. '02LE024'
+                         e.g. "02LE024"
 [weights-file]	... [in] name of file where derived grid weights 
                          should be stored, 
-                         e.g. 'GridWeights.txt'
+                         e.g. "GridWeights.txt"
 ```
 
 ## Usage: VIC example
 
 Using _coarse_ routing discretization (see file used for `-r`):
 ```python
-python derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
+python derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d "lon,lat" -v "lon,lat" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
 ```
 
 Using _fine_ routing discretization (see file used for `-r`):
 ```python
-python derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
+python derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d "lon,lat" -v "lon,lat" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
 ```
 
 ## Usage: MESH example
 
 Using _coarse_ routing discretization (see file used for `-r`):
 ```python
-python derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
+python derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
 ```
 
 Using _fine_ routing discretization (see file used for `-r`):
 ```python
-python derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
+python derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
 ```
 
 
