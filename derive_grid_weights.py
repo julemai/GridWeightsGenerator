@@ -29,13 +29,13 @@ from __future__ import print_function
 # ------------------------
 #        VIC
 # ------------------------
-#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
+#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d "lon,lat" -v "lon,lat" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_VIC/GridWeights.txt
 
 # ------------------------
 #        MESH
 # ------------------------
-#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
-#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
 
 # --------------------------------------------------
 # GRIP-GL version with subbasin ID given (attribute "SubId" in shapefile)  --> -s 7202
@@ -44,13 +44,13 @@ from __future__ import print_function
 # ------------------------
 #        VIC
 # ------------------------
-#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d 'lon,lat' -v 'lon,lat' -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_VIC/GridWeights.txt
+#    run derive_grid_weights.py -i example/input_VIC/VIC_streaminputs.nc -d "lon,lat" -v "lon,lat" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_VIC/GridWeights.txt
 
 # ------------------------
 #        MESH
 # ------------------------
-#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
-#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d 'rlon,rlat' -v 'longitude,latitude' -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
+#    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
 
 
 
@@ -75,15 +75,15 @@ import netCDF4 as nc4
 
 
 
-input_file  = 'example/input_VIC/VIC_streaminputs.nc'
-dimname     = ['rlon','rlat']
-varname     = ['lon','lat']
-routinginfo = 'example/maps/HRUs_coarse.shp'
-basin       = None  # e.g. '02LE024'
+input_file  = "example/input_VIC/VIC_streaminputs.nc"
+dimname     = ["rlon","rlat"]
+varname     = ["lon","lat"]
+routinginfo = "example/maps/HRUs_coarse.shp"
+basin       = None  # e.g. "02LE024"
 SubId       = None  # e.g. 7202
-output_file = 'GriddedForcings.txt'
+output_file = "GriddedForcings.txt"
 doall       = False
-key_colname = 'HRU_ID'
+key_colname = "HRU_ID"
 
 parser      = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
               description='''Convert files from ArcGIS raster format into NetDF file usable in CaSPAr.''')
@@ -136,7 +136,7 @@ if ( not(SubId is None) ) and ( not(basin is None) ) and not(doall):
     raise ValueError("Either gauge ID (option -b; e.g., 02AB003) or SubId ID (option -s; e.g., 7173) specified in shapefile needs to be specified. You specified both. This basin will be the most downstream gridweights of all upstream subbasins will be added automatically.")
 
 if not(doall):
-    key_colname = 'HRU_ID'    # overwrite any settimg made for this column name in case doall is not set
+    key_colname = "HRU_ID"    # overwrite any settimg made for this column name in case doall is not set
 
 del parser, args
 
@@ -316,16 +316,13 @@ if not(doall):
     
     if not(basin is None):    # if gauge ID is given
         
-        idx_basin = list(np.where(shape['Obs_NM']==basin)[0]) # list(np.where(shape['Gauge_ID']==basin)[0])
-        # print('   >>> subbasins found = ',list(np.sort(np.array(shape.loc[idx_basin][key_colname],dtype=np.int))),'  (total: ',len(idx_basin),')')
+        idx_basin = list(np.where(shape['Obs_NM']==basin)[0]) 
 
         # find corresponding SubId
         SubId = np.int(shape.loc[idx_basin].SubId)
         print("   >>> found gauge at SubId = ",SubId)
 
     if not(SubId is None): # if routing toolbox basin ID is given
-
-        # maybe replace "SubId" with "HRU_ID" -->> needs to be tested
 
         old_SubId     = []
         new_SubId     = [ SubId ]
@@ -336,15 +333,11 @@ if not(doall):
             new_SubId = [ list(shape.loc[(np.where(shape['DowSubId']==ii))[0]].SubId) for ii in new_SubId ]  # find all upstream catchments of these new basins
             new_SubId = list(np.unique([item for sublist in new_SubId for item in sublist])) # flatten list and make entries unique
 
-            # print("new_SubId = ",new_SubId)
-
         old_SubId = np.array([item for sublist in old_SubId for item in sublist],dtype=np.int)  # flatten list
         
         idx_basin = [ list(np.where(shape['SubId']==oo)[0]) for oo in old_SubId ]
         idx_basin = [ item for sublist in idx_basin for item in sublist ]  # flatten list
         idx_basin = list(np.unique(np.sort(idx_basin)))                    # getting only unique list indexes
-
-        # get HRU_ID associated to those SubIds (SubIds can appear multiple times- one for "lake" and one for "land")
         
         print('   >>> HRU_IDs found = ',list(shape.loc[idx_basin][key_colname]),'  (total: ',len(idx_basin),')')
 
