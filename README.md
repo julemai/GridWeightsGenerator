@@ -19,6 +19,8 @@ The script is tested under Pythin 3.8 and it requires the following Python packa
 * `pip install geopandas`
 * `pip install netCDF4`
 
+In case you are working of ComputeCanada's cluster systems, e.g., Graham you can find instructions on how to setup those Python environments [here](https://github.com/julemai/GridWeightsGenerator/blob/main/misc/setup-python-env-graham.md).
+
 ## Usage: General
 
 ```python
