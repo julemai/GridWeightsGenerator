@@ -12,7 +12,7 @@ The generated file containing the grid weights can be used in the hydrologic mod
 
 ## Requirements
 
-The script is tested under Pythin 3.8 and it requires the following Python packages:
+The script is tested under Python 3.6 and 3.8 on MacOS and Windows. It requires the following Python packages:
 * `pip install GDAL` (gets you `osgeo`)
 * `pip install argparse`
 * `pip install numpy`
