@@ -61,7 +61,7 @@ from __future__ import print_function
 import argparse
 
 # to perform numerics
-import numpy as np             
+import numpy as np
 
 # read shapefiles and convert to GeoJSON and WKT
 import geopandas as gpd
@@ -69,11 +69,10 @@ import geopandas as gpd
 # get equal-area projection and derive overlay
 from   osgeo   import ogr
 from   osgeo   import osr
+from   osgeo   import __version__ as osgeo_version
 
 # read netCDF files
 import netCDF4 as nc4
-
-
 
 input_file  = "example/input_VIC/VIC_streaminputs.nc"
 dimname     = ["rlon","rlat"]
@@ -88,7 +87,7 @@ key_colname = "HRU_ID"
 parser      = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
               description='''Convert files from ArcGIS raster format into NetDF file usable in CaSPAr.''')
 parser.add_argument('-i', '--input_file', action='store',
-                    default=input_file, dest='input_file', metavar='input_file', 
+                    default=input_file, dest='input_file', metavar='input_file',
                     help='Example NetCDF file containing at least 2D latitudes and 2D longitudes. Grid needs to be representative of model outputs that are then required to be routed.')
 parser.add_argument('-d', '--dimname', action='store',
                     default=dimname, dest='dimname', metavar='dimname',
@@ -106,7 +105,7 @@ parser.add_argument('-s', '--SubId', action='store',
                     default=SubId, dest='SubId', metavar='SubId',
                     help='SubId of most downstream subbasin (containing usually a gauge station) (corresponds to "SubId" in shapefile given with -r). Either this or basin ID (-b) needs to be given.')
 parser.add_argument('-o', '--output_file', action='store',
-                    default=output_file, dest='output_file', metavar='output_file', 
+                    default=output_file, dest='output_file', metavar='output_file',
                     help='File that will contain grid weights for Raven.')
 parser.add_argument('-a', '--doall', action='store_true',
                     default=doall, dest='doall',
@@ -147,7 +146,7 @@ crs_caea  = 3573        # EPSG id of equal-area    coordinate referenence system
 
 
 def create_gridcells_from_centers(lat, lon):
-    
+
     # create array of edges where (x,y) are always center cells
     nlon = np.shape(lon)[1]
     nlat = np.shape(lat)[0]
@@ -161,22 +160,22 @@ def create_gridcells_from_centers(lat, lon):
     lath[0:nlat,0:nlon] = lat - dlat
 
     # make lat and lon one column and row wider such that all
-    lonh[nlat,0:nlon] = lonh[nlat-1,0:nlon] + (lonh[nlat-1,0:nlon] - lonh[nlat-2,0:nlon]) 
-    lath[nlat,0:nlon] = lath[nlat-1,0:nlon] + (lath[nlat-1,0:nlon] - lath[nlat-2,0:nlon]) 
-    lonh[0:nlat,nlon] = lonh[0:nlat,nlon-1] + (lonh[0:nlat,nlon-1] - lonh[0:nlat,nlon-2]) 
-    lath[0:nlat,nlon] = lath[0:nlat,nlon-1] + (lath[0:nlat,nlon-1] - lath[0:nlat,nlon-2]) 
-    lonh[nlat,nlon]   = lonh[nlat-1,nlon-1] + (lonh[nlat-1,nlon-1] - lonh[nlat-2,nlon-2]) 
+    lonh[nlat,0:nlon] = lonh[nlat-1,0:nlon] + (lonh[nlat-1,0:nlon] - lonh[nlat-2,0:nlon])
+    lath[nlat,0:nlon] = lath[nlat-1,0:nlon] + (lath[nlat-1,0:nlon] - lath[nlat-2,0:nlon])
+    lonh[0:nlat,nlon] = lonh[0:nlat,nlon-1] + (lonh[0:nlat,nlon-1] - lonh[0:nlat,nlon-2])
+    lath[0:nlat,nlon] = lath[0:nlat,nlon-1] + (lath[0:nlat,nlon-1] - lath[0:nlat,nlon-2])
+    lonh[nlat,nlon]   = lonh[nlat-1,nlon-1] + (lonh[nlat-1,nlon-1] - lonh[nlat-2,nlon-2])
     lath[nlat,nlon]   = lath[nlat-1,nlon-1] + (lath[nlat-1,nlon-1] - lath[nlat-2,nlon-2])
 
     return [lath,lonh]
 
 def shape_to_geometry(shape_from_jsonfile,epsg=None):
-    
+
     # converts shape read from shapefile to geometry
     # epsg :: integer EPSG code
-    
+
     ring_shape = ogr.Geometry(ogr.wkbLinearRing)
-    
+
     for ii in shape_from_jsonfile:
         ring_shape.AddPoint_2D(ii[0],ii[1])
     # close ring
@@ -191,16 +190,16 @@ def shape_to_geometry(shape_from_jsonfile,epsg=None):
 
         target = osr.SpatialReference()
         target.ImportFromEPSG(epsg)       # any projection to convert to
-    
+
         transform = osr.CoordinateTransformation(source, target)
         poly_shape.Transform(transform)
-        
+
     return poly_shape
 
 def check_proximity_of_envelops(gridcell_envelop, shape_envelop):
 
     # checks if two envelops are in proximity (intersect)
-    
+
     # minX  --> env[0]
     # maxX  --> env[1]
     # minY  --> env[2]
@@ -222,7 +221,7 @@ def check_gridcell_in_proximity_of_shape(gridcell_edges, shape_from_jsonfile):
     # checks if a grid cell falls into the bounding box of the shape
     # does not mean it intersects but it is a quick and cheap way to
     # determine cells that might intersect
-    
+
     # gridcell_edges = [(lon1,lat1),(lon2,lat2),(lon3,lat3),(lon4,lat4)]
     # shape_from_jsonfile
 
@@ -313,10 +312,10 @@ if len(keys_uniq) != len(keys):
 
 # select only relevant basins/sub-basins
 if not(doall):
-    
+
     if not(basin is None):    # if gauge ID is given
-        
-        idx_basin = list(np.where(shape['Obs_NM']==basin)[0]) 
+
+        idx_basin = list(np.where(shape['Obs_NM']==basin)[0])
 
         # find corresponding SubId
         SubId = np.int(shape.loc[idx_basin].SubId)
@@ -328,17 +327,17 @@ if not(doall):
         new_SubId     = [ SubId ]
 
         while len(new_SubId) > 0:
-            
+
             old_SubId.append(new_SubId)
             new_SubId = [ list(shape.loc[(np.where(shape['DowSubId']==ii))[0]].SubId) for ii in new_SubId ]  # find all upstream catchments of these new basins
             new_SubId = list(np.unique([item for sublist in new_SubId for item in sublist])) # flatten list and make entries unique
 
         old_SubId = np.array([item for sublist in old_SubId for item in sublist],dtype=np.int)  # flatten list
-        
+
         idx_basin = [ list(np.where(shape['SubId']==oo)[0]) for oo in old_SubId ]
         idx_basin = [ item for sublist in idx_basin for item in sublist ]  # flatten list
         idx_basin = list(np.unique(np.sort(idx_basin)))                    # getting only unique list indexes
-        
+
         print('   >>> HRU_IDs found = ',list(shape.loc[idx_basin][key_colname]),'  (total: ',len(idx_basin),')')
 
 else: # all HRUs to be processed
@@ -350,7 +349,7 @@ shape     = shape.loc[idx_basin]
 
 # indexes of all lines in df
 keys = shape.index
-nsubbasins = len(keys) 
+nsubbasins = len(keys)
 
 # initialize
 coord_catch_wkt = {}
@@ -372,7 +371,7 @@ grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat
 for ilat in range(nlat):
     if ilat%10 == 0:
         print('   >>> Latitudes done: {0} of {1}'.format(ilat,nlat))
-            
+
     for ilon in range(nlon):
 
         # -------------------------
@@ -390,15 +389,21 @@ for ilat in range(nlat):
         # -------------------------
         # EPSG:3573   does not need a swap after transform ... and is much faster than transform with EPSG:3035
         # -------------------------
-        gridcell_edges = [ [lath[ilat,ilon]    , lonh[ilat,  ilon]    ],            # for some reason need to switch lat/lon that transform works
-                           [lath[ilat+1,ilon]  , lonh[ilat+1,ilon]    ],
-                           [lath[ilat+1,ilon+1], lonh[ilat+1,ilon+1]  ],
-                           [lath[ilat,ilon+1]  , lonh[ilat,  ilon+1]  ]]
+        if osgeo_version < '3.0':
+            gridcell_edges = [ [lonh[ilat,  ilon]   , lath[ilat,ilon]      ],            # for some reason need to switch lat/lon that transform works
+                               [lonh[ilat+1,ilon]   , lath[ilat+1,ilon]    ],
+                               [lonh[ilat+1,ilon+1] , lath[ilat+1,ilon+1]  ],
+                               [lonh[ilat,  ilon+1] , lath[ilat,ilon+1]    ]]
+        else:
+            gridcell_edges = [ [lath[ilat,ilon]     , lonh[ilat,  ilon]    ],            # for some reason lat/lon order works
+                               [lath[ilat+1,ilon]   , lonh[ilat+1,ilon]    ],
+                               [lath[ilat+1,ilon+1] , lonh[ilat+1,ilon+1]  ],
+                               [lath[ilat,ilon+1]   , lonh[ilat,  ilon+1]  ]]
 
         tmp = shape_to_geometry(gridcell_edges, epsg=crs_caea)
         grid_cell_geom_gpd_wkt[ilat][ilon] = tmp
 
-        
+
 # -------------------------------
 # Derive overlay and calculate weights
 # -------------------------------
@@ -413,7 +418,7 @@ ff.write('   :NumberHRUs       {0}            \n'.format(nsubbasins))
 ff.write('   :NumberGridCells  {0}            \n'.format(nlon*nlat))
 ff.write('   #                                \n')
 ff.write('   # [HRU ID] [Cell #] [w_kl]       \n')
-            
+
 
 for ikk,kk in enumerate(keys):
 
@@ -427,17 +432,17 @@ for ikk,kk in enumerate(keys):
 
     for ilat in range(nlat):
         for ilon in range(nlon):
-            
+
             enve_gridcell  = grid_cell_geom_gpd_wkt[ilat][ilon].GetEnvelope()   # bounding box around grid-cell (for easy check of proximity)
             grid_is_close  = check_proximity_of_envelops(enve_gridcell, enve_basin)
 
             if grid_is_close: # this check decreases runtime DRASTICALLY (from ~6h to ~1min)
 
                 grid_cell_area = grid_cell_geom_gpd_wkt[ilat][ilon].Area()
-                
+
                 inter = grid_cell_geom_gpd_wkt[ilat][ilon].Intersection(coord_catch_wkt[kk].Buffer(0.0)) # "fake" buffer to avoid invalid polygons and weirdos dumped by ArcGIS
                 area_intersect = inter.Area()
-                
+
                 area_all += area_intersect
                 if area_intersect > 0:
                     ncells += 1
@@ -447,7 +452,7 @@ for ikk,kk in enumerate(keys):
 
     print('   >>> (Sub-)Basin: {0} ({1} of {2})'.format(int(ibasin[key_colname]),ikk+1,nsubbasins))
     print('   >>> Derived area of {0}  cells: {1}'.format(ncells,area_all))
-    print('   >>> Read area from shapefile:   {0}'.format(area_basin))  
+    print('   >>> Read area from shapefile:   {0}'.format(area_basin))
     print('   >>> error:                      {0}%'.format((area_basin - area_all)/area_basin*100.))
     print('   ')
 
