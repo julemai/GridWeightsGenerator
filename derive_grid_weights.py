@@ -55,7 +55,8 @@ from __future__ import print_function
 
 
 
-
+# read netCDF files
+import netCDF4 as nc4
 
 # command line arguments
 import argparse
@@ -71,8 +72,7 @@ from   osgeo   import ogr
 from   osgeo   import osr
 from   osgeo   import __version__ as osgeo_version
 
-# read netCDF files
-import netCDF4 as nc4
+
 
 input_file  = "example/input_VIC/VIC_streaminputs.nc"
 dimname     = ["rlon","rlat"]
