@@ -389,6 +389,12 @@ for ilat in range(nlat):
         # -------------------------
         # EPSG:3573   does not need a swap after transform ... and is much faster than transform with EPSG:3035
         # -------------------------
+        #
+        # Windows Python 3.8.5 GDAL 3.1.3 --> lat/lon (Ming)
+        # MacOS   Python 3.8.5 GDAL 3.1.3 --> lat/lon (Julie)
+        # Graham  Python 3.8.2 GDAL 3.0.4 --> lat/lon (Julie)
+        # Graham  Python 3.6.3 GDAL 2.2.1 --> lon/lat (Julie)
+        #
         if osgeo_version < '3.0':
             gridcell_edges = [ [lonh[ilat,  ilon]   , lath[ilat,ilon]      ],            # for some reason need to switch lat/lon that transform works
                                [lonh[ilat+1,ilon]   , lath[ilat+1,ilon]    ],
