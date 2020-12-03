@@ -305,9 +305,9 @@ shape     = shape.to_crs(epsg=crs_caea)           # WGS 84 / North Pole LAEA Can
 
 # check that key column contains only unique values
 keys = np.array(list(shape[key_colname]))
-keys_uniq = np.unique(keys)
-if len(keys_uniq) != len(keys):
-    raise ValueError("The attribute of the shapefile set to contain only unique identifiers ('{}') does contain duplicate keys. Please specify another column (option -c '<col_name>') and use the option to process all records contained in the shapefile (-a).".format(key_colname))
+# keys_uniq = np.unique(keys)
+# if len(keys_uniq) != len(keys):
+#     raise ValueError("The attribute of the shapefile set to contain only unique identifiers ('{}') does contain duplicate keys. Please specify another column (option -c '<col_name>') and use the option to process all records contained in the shapefile (-a).".format(key_colname))
 
 
 # select only relevant basins/sub-basins
