@@ -100,10 +100,10 @@ parser.add_argument('-r', '--routinginfo', action='store',
                     help='Shapefile that contains all information of the routing toolbox for the catchment of interest (and maybe some more catchments).')
 parser.add_argument('-b', '--basin', action='store',
                     default=basin, dest='basin', metavar='basin',
-                    help='Basin of interest (corresponds to "Gauge_ID" in shapefile given with -r). Either this or SubId ID (-s) needs to be given.')
+                    help='Basin of interest (corresponds to "Gauge_ID" in shapefile given with -r). Either this or SubId ID (-s) needs to be given. Can be a comma-separated list of basins, e.g., "02LB005,02LB008".')
 parser.add_argument('-s', '--SubId', action='store',
                     default=SubId, dest='SubId', metavar='SubId',
-                    help='SubId of most downstream subbasin (containing usually a gauge station) (corresponds to "SubId" in shapefile given with -r). Either this or basin ID (-b) needs to be given.')
+                    help='SubId of most downstream subbasin (containing usually a gauge station) (corresponds to "SubId" in shapefile given with -r). Either this or basin ID (-b) needs to be given. Can be a comma-separated list of SubIds, e.g., "7399,7400".')
 parser.add_argument('-o', '--output_file', action='store',
                     default=output_file, dest='output_file', metavar='output_file',
                     help='File that will contain grid weights for Raven.')
@@ -126,7 +126,8 @@ doall         = args.doall
 key_colname   = args.key_colname
 
 if not(SubId is None):
-    SubId = np.int(SubId)
+
+    SubId = [ np.int(ss.strip()) for ss in SubId.split(',') ]
 
 if (SubId is None) and (basin is None) and not(doall):
     raise ValueError("Either gauge ID (option -b; e.g., 02AB003) or SubId ID (option -s; e.g., 7173) specified in shapefile needs to be given. You specified none. This basin will be the most downstream gridweights of all upstream subbasins will be added automatically.")
@@ -252,6 +253,7 @@ def check_gridcell_in_proximity_of_shape(gridcell_edges, shape_from_jsonfile):
 # -------------------------------
 # Read NetCDF
 # -------------------------------
+print(' ')
 print('   (1) Reading NetCDF data ...')
 
 nc_in = nc4.Dataset(input_file, "r")
@@ -297,6 +299,7 @@ nlat       = np.shape(lat)[0]
 # -------------------------------
 # Read Basin shapes and all subbasin-shapes
 # -------------------------------
+print(' ')
 print('   (2) Reading routing toolbox data ...')
 
 shape     = gpd.read_file(routinginfo)
@@ -315,40 +318,66 @@ if not(doall):
 
     if not(basin is None):    # if gauge ID is given
 
-        idx_basin = list(np.where(shape['Obs_NM']==basin)[0])
+        basins     = [ bb.strip() for bb in basin.split(',') ]
+        idx_basins = [ list(np.where(shape['Obs_NM']==bb)[0]) for bb in basins ]
 
         # find corresponding SubId
-        SubId = np.int(shape.loc[idx_basin].SubId)
+        SubId = [ np.int(shape.loc[idx_basin].SubId) for idx_basin in idx_basins ]
         print("   >>> found gauge at SubId = ",SubId)
 
     if not(SubId is None): # if routing toolbox basin ID is given
 
-        old_SubId     = []
-        new_SubId     = [ SubId ]
+        old_SubIds = []
+        for SI in SubId:
+            
+            old_SubId     = []
+            new_SubId     = [ SI ]
 
-        while len(new_SubId) > 0:
+            while len(new_SubId) > 0:
 
-            old_SubId.append(new_SubId)
-            new_SubId = [ list(shape.loc[(np.where(shape['DowSubId']==ii))[0]].SubId) for ii in new_SubId ]  # find all upstream catchments of these new basins
-            new_SubId = list(np.unique([item for sublist in new_SubId for item in sublist])) # flatten list and make entries unique
+                old_SubId.append(new_SubId)
+                new_SubId = [ list(shape.loc[(np.where(shape['DowSubId']==ii))[0]].SubId) for ii in new_SubId ]  # find all upstream catchments of these new basins
+                new_SubId = list(np.unique([item for sublist in new_SubId for item in sublist])) # flatten list and make entries unique
 
-        old_SubId = np.array([item for sublist in old_SubId for item in sublist],dtype=np.int)  # flatten list
+            old_SubId   = np.array([item for sublist in old_SubId for item in sublist],dtype=np.int)  # flatten list
+            old_SubIds += list(old_SubId)
 
-        idx_basin = [ list(np.where(shape['SubId']==oo)[0]) for oo in old_SubId ]
-        idx_basin = [ item for sublist in idx_basin for item in sublist ]  # flatten list
-        idx_basin = list(np.unique(np.sort(idx_basin)))                    # getting only unique list indexes
+        old_SubIds = list( np.sort(np.unique(old_SubIds)) )
 
-        print('   >>> HRU_IDs found = ',list(shape.loc[idx_basin][key_colname]),'  (total: ',len(idx_basin),')')
+        idx_basins = [ list(np.where(shape['SubId']==oo)[0]) for oo in old_SubIds ]
+        idx_basins = [ item for sublist in idx_basins for item in sublist ]  # flatten list
+        idx_basins = list(np.unique(idx_basins))                             # getting only unique list indexes
 
 else: # all HRUs to be processed
 
-    idx_basin = list(np.arange(0,len(shape)))
+    idx_basins = list(np.arange(0,len(shape)))
 
 
-shape     = shape.loc[idx_basin]
+# make sure HRUs are only once in this list
+hrus = np.array( shape.loc[idx_basins][key_colname] ) #[sort_idx]
+
+idx_basins_unique = []
+hrus_unique       = []
+for ihru,hru in enumerate(hrus):
+
+    if not( hru in hrus_unique ):
+
+        hrus_unique.append(hrus[ihru])
+        idx_basins_unique.append(idx_basins[ihru])
+
+idx_basins = idx_basins_unique
+hrus       = hrus_unique
+
+
+# order according to values in "key_colname"; just to make sure outputs will be sorted in the end
+sort_idx = np.argsort(shape.loc[idx_basins][key_colname])   
+print('   >>> HRU_IDs found = ',list(np.array( shape.loc[idx_basins][key_colname] )[sort_idx]),'  (total: ',len(idx_basins),')')    
+
+# reduce the routing product dataset now to only what we will need
+shape     = shape.loc[np.array(idx_basins)[sort_idx]]
 
 # indexes of all lines in df
-keys = shape.index
+keys       = shape.index
 nsubbasins = len(keys)
 
 # initialize
@@ -359,12 +388,13 @@ for kk in keys:
 
     ibasin = shape.loc[kk]
 
-    poly      = ibasin.geometry
+    poly                = ibasin.geometry
     coord_catch_wkt[kk] = ogr.CreateGeometryFromWkt(poly.to_wkt())
 
 # -------------------------------
 # construct all grid cell polygons
 # -------------------------------
+print(' ')
 print('   (3) Generate shapes for NetCDF grid cells ...')
 
 grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]
@@ -414,6 +444,7 @@ for ilat in range(nlat):
 # -------------------------------
 # Derive overlay and calculate weights
 # -------------------------------
+print(' ')
 print('   (4) Deriving weights ...')
 
 filename = output_file
