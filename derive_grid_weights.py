@@ -250,6 +250,19 @@ def check_gridcell_in_proximity_of_shape(gridcell_edges, shape_from_jsonfile):
 
     return grid_is_close
 
+# ----------------------
+# NEW for Christian
+# ----------------------
+def derive_2D_coordinates(lat_1D, lon_1D):
+
+    nlat = np.shape(lat_1D)[0]
+    nlon = np.shape(lon_1D)[0]
+
+    lon_2D =              np.array([ lon_1D for ilat in range(nlat) ], dtype=np.float32)
+    lat_2D = np.transpose(np.array([ lat_1D for ilon in range(nlon) ], dtype=np.float32))
+
+    return lat_2D, lon_2D
+
 # -------------------------------
 # Read NetCDF
 # -------------------------------
@@ -263,7 +276,19 @@ lat      = nc_in.variables[varname[1]][:]
 lat_dims = nc_in.variables[varname[1]].dimensions
 nc_in.close()
 
-# Raven numbering is:
+# ----------------------
+# NEW for Christian
+# ----------------------
+# in case coordinates are only 1D (regular grid), derive 2D variables
+if len(lon_dims) == 1: 
+    lat, lon = derive_2D_coordinates(lat,lon)
+    lon_dims_2D = lat_dims + lon_dims 
+    lat_dims_2D = lat_dims + lon_dims
+    lon_dims = lon_dims_2D
+    lat_dims = lat_dims_2D
+    print('   >>> Generate 2D lat and lon fields. Given ones are 1D.')
+
+# Raven numbering is (numbering starts with 0 though):
 #
 #      [      1      2      3   ...     1*nlon
 #        nlon+1 nlon+2 nlon+3   ...     2*nlon
