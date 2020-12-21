@@ -37,6 +37,12 @@ from __future__ import print_function
 #    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
 #    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
 
+# ------------------------
+#        SWAT
+# ------------------------
+#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -v "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -b 04218000 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
+
+
 # --------------------------------------------------
 # GRIP-GL version with subbasin ID given (attribute "SubId" in shapefile)  --> -s 7202
 # --------------------------------------------------
@@ -52,7 +58,10 @@ from __future__ import print_function
 #    run derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc      -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
 #    run derive_grid_weights.py -i example/input_MESH/DRAINSOL_H_GRD.nc -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_MESH/GridWeights_DRAINSOL_H_GRD.txt
 
-
+# ------------------------
+#        SWAT
+# ------------------------
+#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -v "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -s 7041 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
 
 
 # read netCDF files
@@ -60,6 +69,9 @@ import netCDF4 as nc4
 
 # command line arguments
 import argparse
+
+# checking file paths and file extensions
+from pathlib import Path
 
 # to perform numerics
 import numpy as np
@@ -74,27 +86,28 @@ from   osgeo   import __version__ as osgeo_version
 
 
 
-input_file  = "example/input_VIC/VIC_streaminputs.nc"
-dimname     = ["rlon","rlat"]
-varname     = ["lon","lat"]
-routinginfo = "example/maps/HRUs_coarse.shp"
-basin       = None  # e.g. "02LE024"
-SubId       = None  # e.g. 7202
-output_file = "GriddedForcings.txt"
-doall       = False
-key_colname = "HRU_ID"
+input_file           = "example/input_VIC/VIC_streaminputs.nc"
+dimname              = "rlon,rlat"
+varname              = "lon,lat"
+routinginfo          = "example/maps/HRUs_coarse.shp"
+basin                = None  # e.g. "02LE024"
+SubId                = None  # e.g. 7202
+output_file          = "GriddedForcings.txt"
+doall                = False
+key_colname          = "HRU_ID"
+area_error_threshold = 0.05
 
 parser      = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
               description='''Convert files from ArcGIS raster format into NetDF file usable in CaSPAr.''')
 parser.add_argument('-i', '--input_file', action='store',
                     default=input_file, dest='input_file', metavar='input_file',
-                    help='Example NetCDF file containing at least 2D latitudes and 2D longitudes. Grid needs to be representative of model outputs that are then required to be routed.')
+                    help='Either (A) Example NetCDF file containing at least 1D or 2D latitudes and 1D or 2D longitudes where grid needs to be representative of model outputs that are then required to be routed. Or (B) a shapefile that contains shapes of subbasins and one attribute that is defining its index in the NetCDF model output file (numbering needs to be [0 ... N-1]).')
 parser.add_argument('-d', '--dimname', action='store',
                     default=dimname, dest='dimname', metavar='dimname',
                     help='Dimension names of longitude (x) and latitude (y) (in this order). Example: "rlon,rlat", or "x,y"')
 parser.add_argument('-v', '--varname', action='store',
                     default=varname, dest='varname', metavar='varname',
-                    help='Variable name of 2D longitude and latitude variables in NetCDF (in this order). Example: "lon,lat"')
+                    help='(A) Variable name of 2D longitude and latitude variables in NetCDF (in this order). Example: "lon,lat". Or (B) Attribute name in input_file shapefile (option -i) that defines the index of the shape in NetCDF model output file (numbering needs to be [0 ... N-1]).')
 parser.add_argument('-r', '--routinginfo', action='store',
                     default=routinginfo, dest='routinginfo', metavar='routinginfo',
                     help='Shapefile that contains all information of the routing toolbox for the catchment of interest (and maybe some more catchments).')
@@ -113,17 +126,21 @@ parser.add_argument('-a', '--doall', action='store_true',
 parser.add_argument('-c', '--key_colname', action='store',
                     default=key_colname, dest='key_colname', metavar='key_colname',
                     help='Name of column in shapefile containing unique key for each dataset. This key will be used in output file. This setting is only used if "-a" option is used. "Default: "HRU_ID".')
+parser.add_argument('-e', '--area_error_threshold', action='store',
+                    default=area_error_threshold, dest='area_error_threshold', metavar='area_error_threshold',
+                    help='Threshold (as fraction) of allowed mismatch in areas between subbasins from routing information (-r) and overlay with grid-cells or subbasins (-i). If error is smaller than this threshold the weights will be adjusted such that they sum up to exactly 1. Raven will exit gracefully in case weights do not sum up to at least 0.95. Default: 0.05.')
 
-args          = parser.parse_args()
-input_file    = args.input_file
-dimname       = np.array(args.dimname.split(','))
-varname       = np.array(args.varname.split(','))
-routinginfo   = args.routinginfo
-basin         = args.basin
-SubId         = args.SubId
-output_file   = args.output_file
-doall         = args.doall
-key_colname   = args.key_colname
+args                 = parser.parse_args()
+input_file           = args.input_file
+dimname              = np.array(args.dimname.split(','))
+varname              = np.array(args.varname.split(','))
+routinginfo          = args.routinginfo
+basin                = args.basin
+SubId                = args.SubId
+output_file          = args.output_file
+doall                = args.doall
+key_colname          = args.key_colname
+area_error_threshold = np.float(args.area_error_threshold)
 
 if not(SubId is None):
 
@@ -250,79 +267,114 @@ def check_gridcell_in_proximity_of_shape(gridcell_edges, shape_from_jsonfile):
 
     return grid_is_close
 
-# ----------------------
-# NEW for Christian
-# ----------------------
+
 def derive_2D_coordinates(lat_1D, lon_1D):
 
-    nlat = np.shape(lat_1D)[0]
-    nlon = np.shape(lon_1D)[0]
+    # nlat = np.shape(lat_1D)[0]
+    # nlon = np.shape(lon_1D)[0]
 
-    lon_2D =              np.array([ lon_1D for ilat in range(nlat) ], dtype=np.float32)
-    lat_2D = np.transpose(np.array([ lat_1D for ilon in range(nlon) ], dtype=np.float32))
+    # lon_2D =              np.array([ lon_1D for ilat in range(nlat) ], dtype=np.float32)
+    # lat_2D = np.transpose(np.array([ lat_1D for ilon in range(nlon) ], dtype=np.float32))
+
+    lon_2D =              np.tile(lon_1D, (lat_1D.size, 1))
+    lat_2D = np.transpose(np.tile(lat_1D, (lon_1D.size, 1)))
 
     return lat_2D, lon_2D
 
-# -------------------------------
-# Read NetCDF
-# -------------------------------
-print(' ')
-print('   (1) Reading NetCDF data ...')
 
-nc_in = nc4.Dataset(input_file, "r")
-lon      = nc_in.variables[varname[0]][:]
-lon_dims = nc_in.variables[varname[0]].dimensions
-lat      = nc_in.variables[varname[1]][:]
-lat_dims = nc_in.variables[varname[1]].dimensions
-nc_in.close()
+if ( Path(input_file).suffix == '.nc'):
 
-# ----------------------
-# NEW for Christian
-# ----------------------
-# in case coordinates are only 1D (regular grid), derive 2D variables
-if len(lon_dims) == 1: 
-    lat, lon = derive_2D_coordinates(lat,lon)
-    lon_dims_2D = lat_dims + lon_dims 
-    lat_dims_2D = lat_dims + lon_dims
-    lon_dims = lon_dims_2D
-    lat_dims = lat_dims_2D
-    print('   >>> Generate 2D lat and lon fields. Given ones are 1D.')
+    # -------------------------------
+    # Read NetCDF
+    # -------------------------------
+    print(' ')
+    print('   (1) Reading NetCDF (grid) data ...')
 
-# Raven numbering is (numbering starts with 0 though):
-#
-#      [      1      2      3   ...     1*nlon
-#        nlon+1 nlon+2 nlon+3   ...     2*nlon
-#           ...    ...    ...   ...     ...
-#           ...    ...    ...   ...  nlat*nlon ]
-#
-# --> Making sure shape of lat/lon fields is like that
-#
-if np.all(np.array(lon_dims) == dimname[::1]):
-    lon = np.transpose(lon)
-    print('   >>> switched order of dimensions for variable "{0}"'.format(varname[0]))
-elif np.all(np.array(lon_dims) == dimname[::-1]):
-    print('   >>> order of dimensions correct for variable "{0}"'.format(varname[0]))
+    nc_in = nc4.Dataset(input_file, "r")
+    lon      = nc_in.variables[varname[0]][:]
+    lon_dims = nc_in.variables[varname[0]].dimensions
+    lat      = nc_in.variables[varname[1]][:]
+    lat_dims = nc_in.variables[varname[1]].dimensions
+    nc_in.close()
+
+
+    if len(lon_dims) == 1 and len(lat_dims) == 1:
+
+        # in case coordinates are only 1D (regular grid), derive 2D variables
+        
+        print('   >>> Generate 2D lat and lon fields. Given ones are 1D.')
+        
+        lat, lon = derive_2D_coordinates(lat,lon)
+        lon_dims_2D = lat_dims + lon_dims 
+        lat_dims_2D = lat_dims + lon_dims
+        lon_dims = lon_dims_2D
+        lat_dims = lat_dims_2D
+
+    elif len(lon_dims) == 2 and len(lat_dims) == 2:
+
+        # Raven numbering is (numbering starts with 0 though):
+        #
+        #      [      1      2      3   ...     1*nlon
+        #        nlon+1 nlon+2 nlon+3   ...     2*nlon
+        #           ...    ...    ...   ...     ...
+        #           ...    ...    ...   ...  nlat*nlon ]
+        #
+        # --> Making sure shape of lat/lon fields is like that
+        #
+        
+        if np.all(np.array(lon_dims) == dimname[::1]):
+            lon = np.transpose(lon)
+            print('   >>> switched order of dimensions for variable "{0}"'.format(varname[0]))
+        elif np.all(np.array(lon_dims) == dimname[::-1]):
+            print('   >>> order of dimensions correct for variable "{0}"'.format(varname[0]))
+        else:
+            print('   >>> Dimensions found {0} does not match the dimension names specified with (-d): {1}'.format(lon_dims,dimname))
+            raise ValueError('STOP')
+
+        if np.all(np.array(lat_dims) == dimname[::1]):
+            lat = np.transpose(lat)
+            print('   >>> switched order of dimensions for variable "{0}"'.format(varname[1]))
+        elif np.all(np.array(lat_dims) == dimname[::-1]):
+            print('   >>> order of dimensions correct for variable "{0}"'.format(varname[1]))
+        else:
+            print('   >>> Dimensions found {0} does not match the dimension names specified with (-d): {1}'.format(lat_dims,dimname))
+            raise ValueError('STOP')
+
+    else:
+        
+        raise ValueError(
+            "The coord variables must have the same number of dimensions (either 1 or 2)"
+        )
+
+    lath, lonh    = create_gridcells_from_centers(lat, lon)
+
+    nlon       = np.shape(lon)[1]
+    nlat       = np.shape(lat)[0]
+    nshapes    = nlon * nlat
+
+elif ( Path(input_file).suffix == '.shp'):
+
+    # -------------------------------
+    # Read Shapefile
+    # -------------------------------
+    print(' ')
+    print('   (1) Reading Shapefile (grid) data ...')
+
+    model_grid_shp     = gpd.read_file(input_file)
+    model_grid_shp     = model_grid_shp.to_crs(epsg=crs_caea)           # WGS 84 / North Pole LAEA Canada
+
+    nshapes    = model_grid_shp.geometry.count()    # number of shapes in model "discretization" shapefile (not routing toolbox shapefile)
+    nlon       = 1        # only for consistency
+    nlat       = nshapes  # only for consistency
+
 else:
-    print('   >>> Dimensions found {0} does not match the dimension names specified with (-d): {1}'.format(lon_dims,dimname))
-    raise ValueError('STOP')
-
-if np.all(np.array(lat_dims) == dimname[::1]):
-    lat = np.transpose(lat)
-    print('   >>> switched order of dimensions for variable "{0}"'.format(varname[1]))
-elif np.all(np.array(lat_dims) == dimname[::-1]):
-    print('   >>> order of dimensions correct for variable "{0}"'.format(varname[1]))
-else:
-    print('   >>> Dimensions found {0} does not match the dimension names specified with (-d): {1}'.format(lat_dims,dimname))
-    raise ValueError('STOP')
-
-lath, lonh    = create_gridcells_from_centers(lat, lon)
-
-nlon       = np.shape(lon)[1]
-nlat       = np.shape(lat)[0]
+    
+    print("File extension found: {}".format(input_file.split('.')[-1]))
+    raise ValueError('Input file needs to be either NetCDF (*.nc) or a Shapefile (*.shp).')
 
 
 # -------------------------------
-# Read Basin shapes and all subbasin-shapes
+# Read Basin shapes and all subbasin-shapes (from toolbox)
 # -------------------------------
 print(' ')
 print('   (2) Reading routing toolbox data ...')
@@ -419,52 +471,80 @@ for kk in keys:
 # -------------------------------
 # construct all grid cell polygons
 # -------------------------------
-print(' ')
-print('   (3) Generate shapes for NetCDF grid cells ...')
+if ( Path(input_file).suffix == '.nc'):
+    
+    print(' ')
+    print('   (3) Generate shapes for NetCDF grid cells ...')
 
-grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]
-for ilat in range(nlat):
-    if ilat%10 == 0:
-        print('   >>> Latitudes done: {0} of {1}'.format(ilat,nlat))
+    grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]
+    for ilat in range(nlat):
+        if ilat%10 == 0:
+            print('   >>> Latitudes done: {0} of {1}'.format(ilat,nlat))
 
-    for ilon in range(nlon):
+        for ilon in range(nlon):
 
-        # -------------------------
-        # EPSG:3035   needs a swap before and after transform ...
-        # -------------------------
-        # gridcell_edges = [ [lath[ilat,ilon]    , lonh[ilat,  ilon]    ],            # for some reason need to switch lat/lon that transform works
-        #                    [lath[ilat+1,ilon]  , lonh[ilat+1,ilon]    ],
-        #                    [lath[ilat+1,ilon+1], lonh[ilat+1,ilon+1]  ],
-        #                    [lath[ilat,ilon+1]  , lonh[ilat,  ilon+1]  ]]
+            # -------------------------
+            # EPSG:3035   needs a swap before and after transform ...
+            # -------------------------
+            # gridcell_edges = [ [lath[ilat,ilon]    , lonh[ilat,  ilon]    ],            # for some reason need to switch lat/lon that transform works
+            #                    [lath[ilat+1,ilon]  , lonh[ilat+1,ilon]    ],
+            #                    [lath[ilat+1,ilon+1], lonh[ilat+1,ilon+1]  ],
+            #                    [lath[ilat,ilon+1]  , lonh[ilat,  ilon+1]  ]]
 
-        # tmp = shape_to_geometry(gridcell_edges, epsg=crs_caea)
-        # tmp.SwapXY()              # switch lat/lon back
-        # grid_cell_geom_gpd_wkt[ilat][ilon] = tmp
+            # tmp = shape_to_geometry(gridcell_edges, epsg=crs_caea)
+            # tmp.SwapXY()              # switch lat/lon back
+            # grid_cell_geom_gpd_wkt[ilat][ilon] = tmp
 
-        # -------------------------
-        # EPSG:3573   does not need a swap after transform ... and is much faster than transform with EPSG:3035
-        # -------------------------
-        #
-        # Windows            Python 3.8.5 GDAL 3.1.3 --> lat/lon (Ming)
-        # MacOS 10.15.6      Python 3.8.5 GDAL 3.1.3 --> lat/lon (Julie)
-        # Graham             Python 3.8.2 GDAL 3.0.4 --> lat/lon (Julie)
-        # Graham             Python 3.6.3 GDAL 2.2.1 --> lon/lat (Julie)
-        # Ubuntu 18.04.2 LTS Python 3.6.8 GDAL 2.2.3 --> lon/lat (Etienne)
-        #
-        if osgeo_version < '3.0':
-            gridcell_edges = [ [lonh[ilat,  ilon]   , lath[ilat,ilon]      ],            # for some reason need to switch lat/lon that transform works
-                               [lonh[ilat+1,ilon]   , lath[ilat+1,ilon]    ],
-                               [lonh[ilat+1,ilon+1] , lath[ilat+1,ilon+1]  ],
-                               [lonh[ilat,  ilon+1] , lath[ilat,ilon+1]    ]]
-        else:
-            gridcell_edges = [ [lath[ilat,ilon]     , lonh[ilat,  ilon]    ],            # for some reason lat/lon order works
-                               [lath[ilat+1,ilon]   , lonh[ilat+1,ilon]    ],
-                               [lath[ilat+1,ilon+1] , lonh[ilat+1,ilon+1]  ],
-                               [lath[ilat,ilon+1]   , lonh[ilat,  ilon+1]  ]]
+            # -------------------------
+            # EPSG:3573   does not need a swap after transform ... and is much faster than transform with EPSG:3035
+            # -------------------------
+            #
+            # Windows            Python 3.8.5 GDAL 3.1.3 --> lat/lon (Ming)
+            # MacOS 10.15.6      Python 3.8.5 GDAL 3.1.3 --> lat/lon (Julie)
+            # Graham             Python 3.8.2 GDAL 3.0.4 --> lat/lon (Julie)
+            # Graham             Python 3.6.3 GDAL 2.2.1 --> lon/lat (Julie)
+            # Ubuntu 18.04.2 LTS Python 3.6.8 GDAL 2.2.3 --> lon/lat (Etienne)
+            #
+            if osgeo_version < '3.0':
+                gridcell_edges = [ [lonh[ilat,  ilon]   , lath[ilat,ilon]      ],            # for some reason need to switch lat/lon that transform works
+                                   [lonh[ilat+1,ilon]   , lath[ilat+1,ilon]    ],
+                                   [lonh[ilat+1,ilon+1] , lath[ilat+1,ilon+1]  ],
+                                   [lonh[ilat,  ilon+1] , lath[ilat,ilon+1]    ]]
+            else:
+                gridcell_edges = [ [lath[ilat,ilon]     , lonh[ilat,  ilon]    ],            # for some reason lat/lon order works
+                                   [lath[ilat+1,ilon]   , lonh[ilat+1,ilon]    ],
+                                   [lath[ilat+1,ilon+1] , lonh[ilat+1,ilon+1]  ],
+                                   [lath[ilat,ilon+1]   , lonh[ilat,  ilon+1]  ]]
 
-        tmp = shape_to_geometry(gridcell_edges, epsg=crs_caea)
-        grid_cell_geom_gpd_wkt[ilat][ilon] = tmp
+            tmp = shape_to_geometry(gridcell_edges, epsg=crs_caea)
+            grid_cell_geom_gpd_wkt[ilat][ilon] = tmp
 
+elif ( Path(input_file).suffix == '.shp'):
+
+    # -------------------------------
+    # Grid-cells are actually polygons in a shapefile
+    # -------------------------------
+    print(' ')
+    print('   (3) Extract shapes from shapefile ...')
+
+    grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]   # nlat = nshapes, nlon = 1
+    for ishape in range(nshapes):
+
+        idx = np.where(model_grid_shp[varname[0]] == ishape)[0]
+        if len(idx) == 0:
+            print("Polygon ID = {} not found in '{}'. Numbering of shapefile attribute '{}' needs to be [0 ... {}-1].".format(ishape,input_file,varname[0],nshapes))
+            raise ValueError('Polygon ID not found.')
+        if len(idx) > 1:
+            print("Polygon ID = {} found multiple times in '{}' but needs to be unique. Numbering of shapefile attribute '{}' needs to be [0 ... {}-1].".format(ishape,input_file,varname[0],nshapes))
+            raise ValueError('Polygon ID not unique.')
+        idx  = idx[0]
+        poly = model_grid_shp.loc[idx].geometry
+        grid_cell_geom_gpd_wkt[ishape][0] = ogr.CreateGeometryFromWkt(poly.to_wkt())
+
+else:
+    
+    print("File extension found: {}".format(input_file.split('.')[-1]))
+    raise ValueError('Input file needs to be either NetCDF (*.nc) or a Shapefile (*.shp).')
 
 # -------------------------------
 # Derive overlay and calculate weights
@@ -478,11 +558,11 @@ ff.write(':GridWeights                     \n')
 ff.write('   #                                \n')
 ff.write('   # [# HRUs]                       \n')
 ff.write('   :NumberHRUs       {0}            \n'.format(nsubbasins))
-ff.write('   :NumberGridCells  {0}            \n'.format(nlon*nlat))
+ff.write('   :NumberGridCells  {0}            \n'.format(nshapes))
 ff.write('   #                                \n')
 ff.write('   # [HRU ID] [Cell #] [w_kl]       \n')
 
-
+error_dict = {}
 for ikk,kk in enumerate(keys):
 
     ibasin = shape.loc[kk]
@@ -493,6 +573,7 @@ for ikk,kk in enumerate(keys):
     area_all = 0.0
     ncells   = 0
 
+    data_to_write = []
     for ilat in range(nlat):
         for ilon in range(nlon):
 
@@ -503,25 +584,61 @@ for ikk,kk in enumerate(keys):
 
                 grid_cell_area = grid_cell_geom_gpd_wkt[ilat][ilon].Area()
 
-                inter = grid_cell_geom_gpd_wkt[ilat][ilon].Intersection(coord_catch_wkt[kk].Buffer(0.0)) # "fake" buffer to avoid invalid polygons and weirdos dumped by ArcGIS
+                inter = (grid_cell_geom_gpd_wkt[ilat][ilon].Buffer(0.0)).Intersection(coord_catch_wkt[kk].Buffer(0.0)) # "fake" buffer to avoid invalid polygons and weirdos dumped by ArcGIS
                 area_intersect = inter.Area()
 
                 area_all += area_intersect
                 if area_intersect > 0:
+                    
                     ncells += 1
+                    data_to_write.append( [int(ibasin[key_colname]),ilat,ilon,ilat*nlon+ilon,area_intersect/area_basin] )
 
-                    print("   >>> {0},{1},{2},{3},{4}".format(int(ibasin[key_colname]),ilat,ilon,ilat*nlon+ilon,area_intersect/area_basin))
-                    ff.write("   {0}   {1}   {2}\n".format(int(ibasin[key_colname]),ilat*nlon+ilon,area_intersect/area_basin))
+    # mismatch between area of subbasin (routing product) and sum of all contributions of grid cells (model output)
+    error = (area_basin - area_all)/area_basin
+
+    
+    if abs(error) > area_error_threshold and area_basin > 500000.:
+        # record all basins with errors larger 5% (if basin is larger than 0.5 km2)
+        error_dict[int(ibasin[key_colname])] = [ error, area_basin ]
+        for idata in data_to_write:
+            print("   >>> {0},{1},{2},{3},{4}".format(idata[0],idata[1],idata[2],idata[3],idata[4]))
+            ff.write("   {0}   {1}   {2}\n".format(idata[0],idata[1],idata[4]))
+        
+    else:
+        # adjust such that weights sum up to 1.0
+        for idata in data_to_write:
+            corrected = idata[4] * 1.0/(1.0-error)
+            print("   >>> {0},{1},{2},{3},{4}  (corrected to {5})".format(idata[0],idata[1],idata[2],idata[3],idata[4],corrected))
+            ff.write("   {0}   {1}   {2}\n".format(idata[0],idata[1],corrected))
+
+        if error < 1.0:
+            area_all *= 1.0/(1.0-error)
+        error    = 0.0
 
     print('   >>> (Sub-)Basin: {0} ({1} of {2})'.format(int(ibasin[key_colname]),ikk+1,nsubbasins))
     print('   >>> Derived area of {0}  cells: {1}'.format(ncells,area_all))
     print('   >>> Read area from shapefile:   {0}'.format(area_basin))
-    print('   >>> error:                      {0}%'.format((area_basin - area_all)/area_basin*100.))
+    print('   >>> error:                      {0}%'.format(error*100.))
     print('   ')
-
 
 ff.write(':EndGridWeights \n')
 ff.close()
+
+
+
+# print out all subbasins that have large errors
+if (error_dict != {}):
+    print('')
+    print('WARNING :: The following (sub-)basins show large mismatches between provided model')
+    print('           grid and domains required by the routing grid. It seems that your model')
+    print('           output is not covering the entire domain!')
+    print("           { <basin-ID>: <error>, ... } = ")
+    for attribute, value in error_dict.items():
+        print('               {0} : {1:6.2f} % of {2:8.1f} km2 basin'.format(attribute, value[0]*100., value[1]/1000./1000.))
+    print('')
+
+
+
 
 print('')
 print('Wrote: ',filename)
