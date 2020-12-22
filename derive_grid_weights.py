@@ -40,7 +40,8 @@ from __future__ import print_function
 # ------------------------
 #        SWAT
 # ------------------------
-#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -f "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -b 04218000 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
+#    run derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_SWAT/GridWeights_OTT_sub.txt
+#    run derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_SWAT/GridWeights_OTT_sub.txt -e 0.42
 
 # ------------------------
 #        1D coordinates
@@ -66,7 +67,8 @@ from __future__ import print_function
 # ------------------------
 #        SWAT
 # ------------------------
-#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -f "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -s 7041 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
+#    run derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_SWAT/GridWeights_OTT_sub.txt
+#    run derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_SWAT/GridWeights_OTT_sub.txt -e 0.42
 
 # ------------------------
 #        1D coordinates
