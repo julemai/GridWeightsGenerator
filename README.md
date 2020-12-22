@@ -24,35 +24,40 @@ In case you are working of ComputeCanada's cluster systems, e.g., Graham you can
 ## Usage: General
 
 ```python
-python derive_grid_weights.py -i [your-nc-file] -d [dim-names] -v [var-names] -r [tlbx-shp-file] -s [subbasin-id] -b [gauge-id] -o [weights-file]	
+python derive_grid_weights.py -i [your-nc-file] -d [dim-names] -v [var-names] -r [tlbx-shp-file] -s [subbasin-id] -b [gauge-id] -f [shp-attr-name] -o [weights-file]	
 ```
 with
 ```
-[your-nc-file]  ... [in] filename of NetCDF file
-[dim-names]     ... [in] names of NetCDF dimensions of longitude (x) 
-                         and latitude (y) in this order, 
-                         e.g. "rlon,rlat"
-[var-names]     ... [in] names of 2D NetCDF variables containing 
-                         longitudes and latitudes (in this order) of 
-                         centroids of grid cells, 
-                         e.g. "lon,lat"
-[tlbx-shp-file] ... [in] name of shapefile routing toolbox provides; 
-                         shapefile contains shapes of all land and lake HRUs,
-                         e.g. "HRUs.shp"
-[subbasin-id]   ... [in] (either this or [gauge-id] must be set)
-                         ID of subbasin  most downstream (likely a subbasin 
-                         that contains a streamflow gauge station but can 
-                         be any subbasin ID); script will include all subbasins 
-                         upstream of the given subbasin automatically; according 
-                         attribute in [tlbx-shp-file] is called "SubId"; 
-                         e.g. "7202"
-[gauge-id]      ... [in] (either this or [subbasin-id] must be set)
-                         ID of streamflow gauging station; according attribute in 
-                         [tlbx-shp-file] is called "Obs_NM"; 
-                         e.g. "02LE024"
-[weights-file]	... [in] name of file where derived grid weights 
-                         should be stored, 
-                         e.g. "GridWeights.txt"
+[your-nc-file]   ... [in] filename of NetCDF file or shapefile that contains how 
+                          you discretized your model
+[dim-names]      ... [in] names of NetCDF dimensions of longitude (x) 
+                          and latitude (y) in this order, 
+                          e.g. "rlon,rlat"
+[var-names]      ... [in] names of 2D NetCDF variables containing 
+                          longitudes and latitudes (in this order) of 
+                          centroids of grid cells, 
+                          e.g. "lon,lat"
+[tlbx-shp-file]  ... [in] name of shapefile routing toolbox provides; 
+                          shapefile contains shapes of all land and lake HRUs,
+                          e.g. "HRUs.shp"
+[subbasin-id]    ... [in] (either this or [gauge-id] must be set)
+                          ID of subbasin  most downstream (likely a subbasin 
+                          that contains a streamflow gauge station but can 
+                          be any subbasin ID); script will include all subbasins 
+                          upstream of the given subbasin automatically; according 
+                          attribute in [tlbx-shp-file] is called "SubId"; 
+                          e.g. "7202"
+[gauge-id]       ... [in] (either this or [subbasin-id] must be set)
+                          ID of streamflow gauging station; according attribute in 
+                          [tlbx-shp-file] is called "Obs_NM"; 
+                          e.g. "02LE024"
+[weights-file]	  ... [in] name of file where derived grid weights 
+                          should be stored, 
+                          e.g. "GridWeights.txt"
+[shp-attr-name]  ... [in] in case your model discretization (-i) is a shapefile you 
+                          need to provide the attribute name that contains the 
+                          numbering from [0...N-1] of your subbasins (this order 
+                          needs to match the order of your model outputs in NetCDF file)
 ```
 
 ## Usage: VIC example
@@ -77,6 +82,30 @@ python derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc -d "rlon,rlat" 
 Using _fine_ routing discretization (see file used for `-r`):
 ```python
 python derive_grid_weights.py -i example/input_MESH/RFF_H_GRD.nc -d "rlon,rlat" -v "longitude,latitude" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_MESH/GridWeights_RFF_H_GRD.txt
+```
+
+## Usage: ERA5 example (1D lat/lon coordinates = regular grid)
+
+Using _coarse_ routing discretization (see file used for `-r`):
+```python
+python derive_grid_weights.py -i example/input_ERA5/era5-crop.nc -d "longitude,latitude" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_ERA5/GridWeights_ERA5.txt
+```
+
+Using _fine_ routing discretization (see file used for `-r`):
+```python
+python derive_grid_weights.py -i example/input_ERA5/era5-crop.nc -d "longitude,latitude" -v "longitude,latitude" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_ERA5/GridWeights_ERA5.txt
+```
+
+## Usage: SWAT example (model discretization provided as shapefile not NetCDF grid)
+
+Using _coarse_ routing discretization (see file used for `-r`):
+```python
+python derive_grid_weights.py -i example/input_SWAT/OTT_subbasins.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
+```
+
+Using _fine_ routing discretization (see file used for `-r`):
+```python
+python derive_grid_weights.py -i example/input_SWAT/OTT_subbasins.shp -f "NetCDF_col" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
 ```
 
 
