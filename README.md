@@ -103,6 +103,11 @@ Using _coarse_ routing discretization (see file used for `-r`):
 python derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
 ```
 
+For several subbasins there is a mismatch between the provided domain of SWAT (`OTT_sub.shp`) and the domain the routing product requires (`HRUs_coarse.shp`). Basins with large errors are reported on the command-line when you run the script. To force the script to resolve these errors by rescaling the weights available such that they add up to one you can use option `-e` and set a threshold to which errors are exceptable for you (default: 5% = 0.05). To resolve all previously reported basins use:
+```python
+python derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt -e 0.42
+```
+
 Using _fine_ routing discretization (see file used for `-r`):
 ```python
 python derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
