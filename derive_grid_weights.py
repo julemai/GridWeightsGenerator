@@ -45,7 +45,7 @@ from __future__ import print_function
 # ------------------------
 #        1D coordinates
 # ------------------------
-#    run derive_grid_weights.py -i example/input_ERA5/era5-test-dataset-crop.nc -d "longitude,latitude" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_ERA5/GridWeights_ERA5.txt
+#    run derive_grid_weights.py -i example/input_ERA5/era5-crop.nc -d "longitude,latitude" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_ERA5/GridWeights_ERA5.txt
 
 
 # --------------------------------------------------
@@ -67,6 +67,11 @@ from __future__ import print_function
 #        SWAT
 # ------------------------
 #    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -f "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -s 7041 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
+
+# ------------------------
+#        1D coordinates
+# ------------------------
+#    run derive_grid_weights.py -i example/input_ERA5/era5-crop.nc -d "longitude,latitude" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -s 7202 -o example/input_ERA5/GridWeights_ERA5.txt
 
 
 # read netCDF files
