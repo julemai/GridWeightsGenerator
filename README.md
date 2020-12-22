@@ -100,12 +100,12 @@ python derive_grid_weights.py -i example/input_ERA5/era5-crop.nc -d "longitude,l
 
 Using _coarse_ routing discretization (see file used for `-r`):
 ```python
-python derive_grid_weights.py -i example/input_SWAT/OTT_subbasins.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
+python derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
 ```
 
 Using _fine_ routing discretization (see file used for `-r`):
 ```python
-python derive_grid_weights.py -i example/input_SWAT/OTT_subbasins.shp -f "NetCDF_col" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
+python derive_grid_weights.py -i example/input_SWAT/OTT_sub.shp -f "NetCDF_col" -r example/maps/HRUs_fine.shp -b 02LE024 -o example/input_SWAT/GridWeights_SWAT.txt
 ```
 
 
