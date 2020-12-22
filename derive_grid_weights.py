@@ -40,7 +40,7 @@ from __future__ import print_function
 # ------------------------
 #        SWAT
 # ------------------------
-#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -v "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -b 04218000 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
+#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -f "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -b 04218000 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
 
 # ------------------------
 #        1D coordinates
@@ -66,7 +66,7 @@ from __future__ import print_function
 # ------------------------
 #        SWAT
 # ------------------------
-#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -v "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -s 7041 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
+#    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -f "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -s 7041 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
 
 
 # read netCDF files
