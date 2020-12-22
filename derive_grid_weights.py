@@ -619,14 +619,14 @@ for ikk,kk in enumerate(keys):
         error_dict[int(ibasin[key_colname])] = [ error, area_basin ]
         for idata in data_to_write:
             print("   >>> {0},{1},{2},{3},{4}".format(idata[0],idata[1],idata[2],idata[3],idata[4]))
-            ff.write("   {0}   {1}   {2}\n".format(idata[0],idata[1],idata[4]))
+            ff.write("   {0}   {1}   {2}\n".format(idata[0],idata[3],idata[4]))
         
     else:
         # adjust such that weights sum up to 1.0
         for idata in data_to_write:
             corrected = idata[4] * 1.0/(1.0-error)
             print("   >>> {0},{1},{2},{3},{4}  (corrected to {5})".format(idata[0],idata[1],idata[2],idata[3],idata[4],corrected))
-            ff.write("   {0}   {1}   {2}\n".format(idata[0],idata[1],corrected))
+            ff.write("   {0}   {1}   {2}\n".format(idata[0],idata[3],corrected))
 
         if error < 1.0:
             area_all *= 1.0/(1.0-error)
