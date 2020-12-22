@@ -42,6 +42,11 @@ from __future__ import print_function
 # ------------------------
 #    run derive_grid_weights.py -i example/input_SWAT/ERI_subbasins.shp -v "NetCDF_col" -r ../GRIP-GL/data/routing_product/great-lakes/v1.4.2/version3_subwatershed_with_lakes_141_calibration_gauges/GRIP_GL_141_calibration_catchment_info.shp -b 04218000 -o example/input_SWAT/GridWeights_ERI_subbasins.txt
 
+# ------------------------
+#        1D coordinates
+# ------------------------
+#    run derive_grid_weights.py -i example/input_ERA5/era5-test-dataset-crop.nc -d "longitude,latitude" -v "longitude,latitude" -r example/maps/HRUs_coarse.shp -b 02LE024 -o example/input_ERA5/GridWeights_ERA5.txt
+
 
 # --------------------------------------------------
 # GRIP-GL version with subbasin ID given (attribute "SubId" in shapefile)  --> -s 7202
@@ -95,6 +100,7 @@ SubId                = None  # e.g. 7202
 output_file          = "GriddedForcings.txt"
 doall                = False
 key_colname          = "HRU_ID"
+key_colname_model    = None
 area_error_threshold = 0.05
 
 parser      = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
@@ -107,7 +113,7 @@ parser.add_argument('-d', '--dimname', action='store',
                     help='Dimension names of longitude (x) and latitude (y) (in this order). Example: "rlon,rlat", or "x,y"')
 parser.add_argument('-v', '--varname', action='store',
                     default=varname, dest='varname', metavar='varname',
-                    help='(A) Variable name of 2D longitude and latitude variables in NetCDF (in this order). Example: "lon,lat". Or (B) Attribute name in input_file shapefile (option -i) that defines the index of the shape in NetCDF model output file (numbering needs to be [0 ... N-1]).')
+                    help='Variable name of 2D longitude and latitude variables in NetCDF (in this order). Example: "lon,lat".')
 parser.add_argument('-r', '--routinginfo', action='store',
                     default=routinginfo, dest='routinginfo', metavar='routinginfo',
                     help='Shapefile that contains all information of the routing toolbox for the catchment of interest (and maybe some more catchments).')
@@ -125,7 +131,10 @@ parser.add_argument('-a', '--doall', action='store_true',
                     help='If given, all HRUs found in shapefile are processed. Overwrites settings of "-b" and "-s". Default: not set (False).')
 parser.add_argument('-c', '--key_colname', action='store',
                     default=key_colname, dest='key_colname', metavar='key_colname',
-                    help='Name of column in shapefile containing unique key for each dataset. This key will be used in output file. This setting is only used if "-a" option is used. "Default: "HRU_ID".')
+                    help='Name of column in routing information shapefile containing unique key for each dataset. This key will be used in output file. This setting is only used if "-a" option is used. "Default: "HRU_ID".')
+parser.add_argument('-f', '--key_colname_model', action='store',
+                    default=key_colname_model, dest='key_colname_model', metavar='key_colname_model',
+                    help='Attribute name in input_file shapefile (option -i) that defines the index of the shape in NetCDF model output file (numbering needs to be [0 ... N-1]). Example: "NetCDF_col".')
 parser.add_argument('-e', '--area_error_threshold', action='store',
                     default=area_error_threshold, dest='area_error_threshold', metavar='area_error_threshold',
                     help='Threshold (as fraction) of allowed mismatch in areas between subbasins from routing information (-r) and overlay with grid-cells or subbasins (-i). If error is smaller than this threshold the weights will be adjusted such that they sum up to exactly 1. Raven will exit gracefully in case weights do not sum up to at least 0.95. Default: 0.05.')
@@ -140,6 +149,7 @@ SubId                = args.SubId
 output_file          = args.output_file
 doall                = args.doall
 key_colname          = args.key_colname
+key_colname_model    = args.key_colname_model
 area_error_threshold = np.float(args.area_error_threshold)
 
 if not(SubId is None):
@@ -530,12 +540,12 @@ elif ( Path(input_file).suffix == '.shp'):
     grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]   # nlat = nshapes, nlon = 1
     for ishape in range(nshapes):
 
-        idx = np.where(model_grid_shp[varname[0]] == ishape)[0]
+        idx = np.where(model_grid_shp[key_colname_model] == ishape)[0]
         if len(idx) == 0:
-            print("Polygon ID = {} not found in '{}'. Numbering of shapefile attribute '{}' needs to be [0 ... {}-1].".format(ishape,input_file,varname[0],nshapes))
+            print("Polygon ID = {} not found in '{}'. Numbering of shapefile attribute '{}' needs to be [0 ... {}-1].".format(ishape,input_file,key_colname_model,nshapes))
             raise ValueError('Polygon ID not found.')
         if len(idx) > 1:
-            print("Polygon ID = {} found multiple times in '{}' but needs to be unique. Numbering of shapefile attribute '{}' needs to be [0 ... {}-1].".format(ishape,input_file,varname[0],nshapes))
+            print("Polygon ID = {} found multiple times in '{}' but needs to be unique. Numbering of shapefile attribute '{}' needs to be [0 ... {}-1].".format(ishape,input_file,key_colname_model,nshapes))
             raise ValueError('Polygon ID not unique.')
         idx  = idx[0]
         poly = model_grid_shp.loc[idx].geometry
