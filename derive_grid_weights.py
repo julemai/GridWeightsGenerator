@@ -123,7 +123,7 @@ parser.add_argument('-v', '--varname', action='store',
                     help='Variable name of 2D longitude and latitude variables in NetCDF (in this order). Example: "lon,lat".')
 parser.add_argument('-r', '--routinginfo', action='store',
                     default=routinginfo, dest='routinginfo', metavar='routinginfo',
-                    help='Shapefile that contains all information of the routing toolbox for the catchment of interest (and maybe some more catchments).')
+                    help='Shapefile that contains all information for the catchment of interest (and maybe some more catchments).')
 parser.add_argument('-b', '--basin', action='store',
                     default=basin, dest='basin', metavar='basin',
                     help='Basin of interest (corresponds to "Gauge_ID" in shapefile given with -r). Either this or SubId ID (-s) needs to be given. Can be a comma-separated list of basins, e.g., "02LB005,02LB008".')
@@ -138,13 +138,13 @@ parser.add_argument('-a', '--doall', action='store_true',
                     help='If given, all HRUs found in shapefile are processed. Overwrites settings of "-b" and "-s". Default: not set (False).')
 parser.add_argument('-c', '--key_colname', action='store',
                     default=key_colname, dest='key_colname', metavar='key_colname',
-                    help='Name of column in routing information shapefile containing unique key for each dataset. This key will be used in output file. This setting is only used if "-a" option is used. "Default: "HRU_ID".')
+                    help='Name of column in shapefile containing unique key for each dataset. This key will be used in output file. This setting is only used if "-a" option is used. "Default: "HRU_ID".')
 parser.add_argument('-f', '--key_colname_model', action='store',
                     default=key_colname_model, dest='key_colname_model', metavar='key_colname_model',
                     help='Attribute name in input_file shapefile (option -i) that defines the index of the shape in NetCDF model output file (numbering needs to be [0 ... N-1]). Example: "NetCDF_col".')
 parser.add_argument('-e', '--area_error_threshold', action='store',
                     default=area_error_threshold, dest='area_error_threshold', metavar='area_error_threshold',
-                    help='Threshold (as fraction) of allowed mismatch in areas between subbasins from routing information (-r) and overlay with grid-cells or subbasins (-i). If error is smaller than this threshold the weights will be adjusted such that they sum up to exactly 1. Raven will exit gracefully in case weights do not sum up to at least 0.95. Default: 0.05.')
+                    help='Threshold (as fraction) of allowed mismatch in areas between subbasins from shapefile (-r) and overlay with grid-cells or subbasins (-i). If error is smaller than this threshold the weights will be adjusted such that they sum up to exactly 1. Raven will exit gracefully in case weights do not sum up to at least 0.95. Default: 0.05.')
 
 args                 = parser.parse_args()
 input_file           = args.input_file
@@ -157,7 +157,7 @@ output_file          = args.output_file
 doall                = args.doall
 key_colname          = args.key_colname
 key_colname_model    = args.key_colname_model
-area_error_threshold = np.float(args.area_error_threshold)
+area_error_threshold = float(args.area_error_threshold)
 
 if not(SubId is None):
 
@@ -185,8 +185,8 @@ def create_gridcells_from_centers(lat, lon):
     # create array of edges where (x,y) are always center cells
     nlon = np.shape(lon)[1]
     nlat = np.shape(lat)[0]
-    lonh = np.empty((nlat+1,nlon+1), dtype=np.float)
-    lath = np.empty((nlat+1,nlon+1), dtype=np.float)
+    lonh = np.empty((nlat+1,nlon+1), dtype=float)
+    lath = np.empty((nlat+1,nlon+1), dtype=float)
     tmp1 = [ [ (lat[ii+1,jj+1]-lat[ii,jj])/2 for jj in range(nlon-1) ] + [ (lat[ii+1,nlon-1]-lat[ii,nlon-2])/2 ] for ii in range(nlat-1) ]
     tmp2 = [ [ (lon[ii+1,jj+1]-lon[ii,jj])/2 for jj in range(nlon-1) ] + [ (lon[ii+1,nlon-1]-lon[ii,nlon-2])/2 ] for ii in range(nlat-1) ]
     dlat = np.array(tmp1 + [ tmp1[-1] ])
@@ -290,8 +290,8 @@ def derive_2D_coordinates(lat_1D, lon_1D):
     # nlat = np.shape(lat_1D)[0]
     # nlon = np.shape(lon_1D)[0]
 
-    # lon_2D =              np.array([ lon_1D for ilat in range(nlat) ], dtype=np.float32)
-    # lat_2D = np.transpose(np.array([ lat_1D for ilon in range(nlon) ], dtype=np.float32))
+    # lon_2D =              np.array([ lon_1D for ilat in range(nlat) ], dtype=float32)
+    # lat_2D = np.transpose(np.array([ lat_1D for ilon in range(nlon) ], dtype=float32))
 
     lon_2D =              np.tile(lon_1D, (lat_1D.size, 1))
     lat_2D = np.transpose(np.tile(lat_1D, (lon_1D.size, 1)))
@@ -318,11 +318,11 @@ if ( Path(input_file).suffix == '.nc'):
     if len(lon_dims) == 1 and len(lat_dims) == 1:
 
         # in case coordinates are only 1D (regular grid), derive 2D variables
-        
+
         print('   >>> Generate 2D lat and lon fields. Given ones are 1D.')
-        
+
         lat, lon = derive_2D_coordinates(lat,lon)
-        lon_dims_2D = lat_dims + lon_dims 
+        lon_dims_2D = lat_dims + lon_dims
         lat_dims_2D = lat_dims + lon_dims
         lon_dims = lon_dims_2D
         lat_dims = lat_dims_2D
@@ -338,7 +338,7 @@ if ( Path(input_file).suffix == '.nc'):
         #
         # --> Making sure shape of lat/lon fields is like that
         #
-        
+
         if np.all(np.array(lon_dims) == dimname[::1]):
             lon = np.transpose(lon)
             print('   >>> switched order of dimensions for variable "{0}"'.format(varname[0]))
@@ -358,7 +358,7 @@ if ( Path(input_file).suffix == '.nc'):
             raise ValueError('STOP')
 
     else:
-        
+
         raise ValueError(
             "The coord variables must have the same number of dimensions (either 1 or 2)"
         )
@@ -380,12 +380,12 @@ elif ( Path(input_file).suffix == '.shp'):
     model_grid_shp     = gpd.read_file(input_file)
     model_grid_shp     = model_grid_shp.to_crs(epsg=crs_caea)           # WGS 84 / North Pole LAEA Canada
 
-    nshapes    = model_grid_shp.geometry.count()    # number of shapes in model "discretization" shapefile (not routing toolbox shapefile)
+    nshapes    = model_grid_shp.geometry.count()    # number of shapes in model "discretization" shapefile (i.e. model grid-cells; not basin-discretization shapefile)
     nlon       = 1        # only for consistency
     nlat       = nshapes  # only for consistency
 
 else:
-    
+
     print("File extension found: {}".format(input_file.split('.')[-1]))
     raise ValueError('Input file needs to be either NetCDF (*.nc) or a Shapefile (*.shp).')
 
@@ -394,7 +394,7 @@ else:
 # Read Basin shapes and all subbasin-shapes (from toolbox)
 # -------------------------------
 print(' ')
-print('   (2) Reading routing toolbox data ...')
+print('   (2) Reading shapefile data ...')
 
 shape     = gpd.read_file(routinginfo)
 # shape     = shape.to_crs(epsg=crs_lldeg)        # this is lat/lon in degree
@@ -419,11 +419,11 @@ if not(doall):
         SubId = [ np.int(shape.loc[idx_basin].SubId) for idx_basin in idx_basins ]
         print("   >>> found gauge at SubId = ",SubId)
 
-    if not(SubId is None): # if routing toolbox basin ID is given
+    if not(SubId is None): # if basin ID is given
 
         old_SubIds = []
         for SI in SubId:
-            
+
             old_SubId     = []
             new_SubId     = [ SI ]
 
@@ -464,10 +464,10 @@ hrus       = hrus_unique
 
 
 # order according to values in "key_colname"; just to make sure outputs will be sorted in the end
-sort_idx = np.argsort(shape.loc[idx_basins][key_colname])   
-print('   >>> HRU_IDs found = ',list(np.array( shape.loc[idx_basins][key_colname] )[sort_idx]),'  (total: ',len(idx_basins),')')    
+sort_idx = np.argsort(shape.loc[idx_basins][key_colname])
+print('   >>> HRU_IDs found = ',list(np.array( shape.loc[idx_basins][key_colname] )[sort_idx]),'  (total: ',len(idx_basins),')')
 
-# reduce the routing product dataset now to only what we will need
+# reduce the shapefile dataset now to only what we will need
 shape     = shape.loc[np.array(idx_basins)[sort_idx]]
 
 # indexes of all lines in df
@@ -489,7 +489,7 @@ for kk in keys:
 # construct all grid cell polygons
 # -------------------------------
 if ( Path(input_file).suffix == '.nc'):
-    
+
     print(' ')
     print('   (3) Generate shapes for NetCDF grid cells ...')
 
@@ -559,7 +559,7 @@ elif ( Path(input_file).suffix == '.shp'):
         grid_cell_geom_gpd_wkt[ishape][0] = ogr.CreateGeometryFromWkt(poly.to_wkt())
 
 else:
-    
+
     print("File extension found: {}".format(input_file.split('.')[-1]))
     raise ValueError('Input file needs to be either NetCDF (*.nc) or a Shapefile (*.shp).')
 
@@ -606,21 +606,21 @@ for ikk,kk in enumerate(keys):
 
                 area_all += area_intersect
                 if area_intersect > 0:
-                    
+
                     ncells += 1
                     data_to_write.append( [int(ibasin[key_colname]),ilat,ilon,ilat*nlon+ilon,area_intersect/area_basin] )
 
-    # mismatch between area of subbasin (routing product) and sum of all contributions of grid cells (model output)
+    # mismatch between area of subbasin (shapefile) and sum of all contributions of grid cells (model output)
     error = (area_basin - area_all)/area_basin
 
-    
+
     if abs(error) > area_error_threshold and area_basin > 500000.:
         # record all basins with errors larger 5% (if basin is larger than 0.5 km2)
         error_dict[int(ibasin[key_colname])] = [ error, area_basin ]
         for idata in data_to_write:
             print("   >>> {0},{1},{2},{3},{4}".format(idata[0],idata[1],idata[2],idata[3],idata[4]))
             ff.write("   {0}   {1}   {2}\n".format(idata[0],idata[3],idata[4]))
-        
+
     else:
         # adjust such that weights sum up to 1.0
         for idata in data_to_write:
@@ -647,7 +647,7 @@ ff.close()
 if (error_dict != {}):
     print('')
     print('WARNING :: The following (sub-)basins show large mismatches between provided model')
-    print('           grid and domains required by the routing grid. It seems that your model')
+    print('           grid and domains spefied in the shapefile. It seems that your model')
     print('           output is not covering the entire domain!')
     print("           { <basin-ID>: <error>, ... } = ")
     for attribute, value in error_dict.items():
@@ -660,12 +660,3 @@ if (error_dict != {}):
 print('')
 print('Wrote: ',filename)
 print('')
-
-
-
-
-
-
-
-
-
