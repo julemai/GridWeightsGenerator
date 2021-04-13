@@ -1,3 +1,4 @@
 **.DS_Store
 
 example/input_*/*.txt
+example/input_*/*_agg.nc
