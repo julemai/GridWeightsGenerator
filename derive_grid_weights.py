@@ -483,7 +483,10 @@ for kk in keys:
     ibasin = shape.loc[kk]
 
     poly                = ibasin.geometry
-    coord_catch_wkt[kk] = ogr.CreateGeometryFromWkt(poly.to_wkt())
+    try:
+        coord_catch_wkt[kk] = ogr.CreateGeometryFromWkt(poly.to_wkt())
+    except:
+        coord_catch_wkt[kk] = ogr.CreateGeometryFromWkt(poly.wkt)
 
 # -------------------------------
 # construct all grid cell polygons
@@ -556,7 +559,10 @@ elif ( Path(input_file).suffix == '.shp'):
             raise ValueError('Polygon ID not unique.')
         idx  = idx[0]
         poly = model_grid_shp.loc[idx].geometry
-        grid_cell_geom_gpd_wkt[ishape][0] = ogr.CreateGeometryFromWkt(poly.to_wkt())
+        try:
+            grid_cell_geom_gpd_wkt[ishape][0] = ogr.CreateGeometryFromWkt(poly.to_wkt())
+        except:
+            grid_cell_geom_gpd_wkt[ishape][0] = ogr.CreateGeometryFromWkt(poly.wkt)
 
 else:
 
