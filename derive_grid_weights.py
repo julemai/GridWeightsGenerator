@@ -109,6 +109,7 @@ doall                = False
 key_colname          = "HRU_ID"
 key_colname_model    = None
 area_error_threshold = 0.05
+dojson               = False
 
 parser      = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
               description='''Convert files from ArcGIS raster format into NetDF file usable in CaSPAr.''')
@@ -145,6 +146,9 @@ parser.add_argument('-f', '--key_colname_model', action='store',
 parser.add_argument('-e', '--area_error_threshold', action='store',
                     default=area_error_threshold, dest='area_error_threshold', metavar='area_error_threshold',
                     help='Threshold (as fraction) of allowed mismatch in areas between subbasins from shapefile (-r) and overlay with grid-cells or subbasins (-i). If error is smaller than this threshold the weights will be adjusted such that they sum up to exactly 1. Raven will exit gracefully in case weights do not sum up to at least 0.95. Default: 0.05.')
+parser.add_argument('-j', '--dojson', action='store_true',
+                    default=dojson, dest='dojson',
+                    help='If given, the GeoJSON of grid cells contributing to at least one HRU are dumped into  GeoJSON. Default: False.')
 
 args                 = parser.parse_args()
 input_file           = args.input_file
@@ -158,6 +162,11 @@ doall                = args.doall
 key_colname          = args.key_colname
 key_colname_model    = args.key_colname_model
 area_error_threshold = float(args.area_error_threshold)
+dojson               = args.dojson
+
+if dojson:
+    # write geoJSON files (eventually)
+    import geojson as gjs
 
 if not(SubId is None):
 
@@ -496,7 +505,9 @@ if ( Path(input_file).suffix == '.nc'):
     print(' ')
     print('   (3) Generate shapes for NetCDF grid cells ...')
 
-    grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]
+    grid_cell_geom_gpd_wkt_ea = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]
+    if dojson:
+        grid_cell_geom_gpd_wkt_ll = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]
     for ilat in range(nlat):
         if ilat%10 == 0:
             print('   >>> Latitudes done: {0} of {1}'.format(ilat,nlat))
@@ -513,7 +524,7 @@ if ( Path(input_file).suffix == '.nc'):
 
             # tmp = shape_to_geometry(gridcell_edges, epsg=crs_caea)
             # tmp.SwapXY()              # switch lat/lon back
-            # grid_cell_geom_gpd_wkt[ilat][ilon] = tmp
+            # grid_cell_geom_gpd_wkt_ea[ilat][ilon] = tmp
 
             # -------------------------
             # EPSG:3573   does not need a swap after transform ... and is much faster than transform with EPSG:3035
@@ -537,7 +548,11 @@ if ( Path(input_file).suffix == '.nc'):
                                    [lath[ilat,ilon+1]   , lonh[ilat,  ilon+1]  ]]
 
             tmp = shape_to_geometry(gridcell_edges, epsg=crs_caea)
-            grid_cell_geom_gpd_wkt[ilat][ilon] = tmp
+            grid_cell_geom_gpd_wkt_ea[ilat][ilon] = tmp
+
+            if dojson:
+                tmp = shape_to_geometry(gridcell_edges)
+                grid_cell_geom_gpd_wkt_ll[ilat][ilon] = tmp
 
 elif ( Path(input_file).suffix == '.shp'):
 
@@ -547,7 +562,7 @@ elif ( Path(input_file).suffix == '.shp'):
     print(' ')
     print('   (3) Extract shapes from shapefile ...')
 
-    grid_cell_geom_gpd_wkt = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]   # nlat = nshapes, nlon = 1
+    grid_cell_geom_gpd_wkt_ea = [ [ [] for ilon in range(nlon) ] for ilat in range(nlat) ]   # nlat = nshapes, nlon = 1
     for ishape in range(nshapes):
 
         idx = np.where(model_grid_shp[key_colname_model] == ishape)[0]
@@ -560,9 +575,9 @@ elif ( Path(input_file).suffix == '.shp'):
         idx  = idx[0]
         poly = model_grid_shp.loc[idx].geometry
         try:
-            grid_cell_geom_gpd_wkt[ishape][0] = ogr.CreateGeometryFromWkt(poly.to_wkt())
+            grid_cell_geom_gpd_wkt_ea[ishape][0] = ogr.CreateGeometryFromWkt(poly.to_wkt())
         except:
-            grid_cell_geom_gpd_wkt[ishape][0] = ogr.CreateGeometryFromWkt(poly.wkt)
+            grid_cell_geom_gpd_wkt_ea[ishape][0] = ogr.CreateGeometryFromWkt(poly.wkt)
 
 else:
 
@@ -585,6 +600,10 @@ ff.write('   :NumberGridCells  {0}            \n'.format(nshapes))
 ff.write('   #                                \n')
 ff.write('   # [HRU ID] [Cell #] [w_kl]       \n')
 
+if dojson:
+    cells_to_write_to_geojson = []
+    geojson = []
+
 error_dict = {}
 for ikk,kk in enumerate(keys):
 
@@ -600,21 +619,28 @@ for ikk,kk in enumerate(keys):
     for ilat in range(nlat):
         for ilon in range(nlon):
 
-            enve_gridcell  = grid_cell_geom_gpd_wkt[ilat][ilon].GetEnvelope()   # bounding box around grid-cell (for easy check of proximity)
+            enve_gridcell  = grid_cell_geom_gpd_wkt_ea[ilat][ilon].GetEnvelope()   # bounding box around grid-cell (for easy check of proximity)
             grid_is_close  = check_proximity_of_envelops(enve_gridcell, enve_basin)
 
             if grid_is_close: # this check decreases runtime DRASTICALLY (from ~6h to ~1min)
 
-                grid_cell_area = grid_cell_geom_gpd_wkt[ilat][ilon].Area()
+                grid_cell_area = grid_cell_geom_gpd_wkt_ea[ilat][ilon].Area()
 
-                inter = (grid_cell_geom_gpd_wkt[ilat][ilon].Buffer(0.0)).Intersection(coord_catch_wkt[kk].Buffer(0.0)) # "fake" buffer to avoid invalid polygons and weirdos dumped by ArcGIS
+                inter = (grid_cell_geom_gpd_wkt_ea[ilat][ilon].Buffer(0.0)).Intersection(coord_catch_wkt[kk].Buffer(0.0)) # "fake" buffer to avoid invalid polygons and weirdos dumped by ArcGIS
                 area_intersect = inter.Area()
 
                 area_all += area_intersect
                 if area_intersect > 0:
 
                     ncells += 1
-                    data_to_write.append( [int(ibasin[key_colname]),ilat,ilon,ilat*nlon+ilon,area_intersect/area_basin] )
+                    cell_ID = ilat*nlon+ilon
+                    data_to_write.append( [int(ibasin[key_colname]),ilat,ilon,cell_ID,area_intersect/area_basin] )
+
+                    if dojson:
+                        if cell_ID not in cells_to_write_to_geojson:
+                            cells_to_write_to_geojson.append( cell_ID )
+                            tmp = grid_cell_geom_gpd_wkt_ll[ilat][ilon].Buffer(0.0).ExportToJson()
+                            geojson.append({"type":"Feature","geometry":gjs.loads(tmp),"properties":{"CellId":cell_ID,"Area":grid_cell_area}})
 
     # mismatch between area of subbasin (shapefile) and sum of all contributions of grid cells (model output)
     error = (area_basin - area_all)/area_basin
@@ -647,6 +673,15 @@ for ikk,kk in enumerate(keys):
 ff.write(':EndGridWeights \n')
 ff.close()
 
+# write geoson
+if dojson:
+
+    json_file = '.'.join(filename.split('.')[0:-1])+".json"
+
+    geojson = {"type":"FeatureCollection","features":geojson}
+    with open(json_file, 'w') as outfile:
+      gjs.dump(geojson, outfile)
+
 
 
 # print out all subbasins that have large errors
@@ -665,4 +700,6 @@ if (error_dict != {}):
 
 print('')
 print('Wrote: ',filename)
+if dojson:
+    print('Wrote: ',json_file)
 print('')
